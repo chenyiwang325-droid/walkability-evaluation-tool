@@ -54,7 +54,7 @@ const App = {
     // 根据模式渲染内容
     if (AppState.currentMode === 'edit') {
       this.renderEditorMode();
-    } else if (AppState.images.length === 0) {
+    } else if (AppState.showWelcome || AppState.images.length === 0) {
       this.renderWelcomeScreen();
     } else if (AppState.currentMode === 'browse') {
       // 浏览模式：单页和画册都由 renderBrowseView 处理
@@ -133,8 +133,15 @@ const App = {
       try {
         const result = await ImageLoader.loadFromServer(levelId);
         if (result.images.length > 0) {
-          this.render();
-          this.showToast(`已切换到${AppState.getCurrentLevelConfig()?.name || levelId}，加载 ${result.images.length} 张图像`, 'success');
+          this.showToast(`已加载 ${result.images.length} 张图像`, 'success');
+          // 保持之前的模式选择，如果已经在评价界面则继续，否则显示欢迎页
+          if (!AppState.showWelcome && AppState.currentMode) {
+            // 已在评价界面，保持当前模式
+            this.render();
+          } else {
+            // 在欢迎页，保持欢迎页让用户选择模式
+            this.render();
+          }
           return;
         }
       } catch (error) {
@@ -142,15 +149,18 @@ const App = {
         // 服务器没有该层级数据，清空该层级图像，回到欢迎页
         AppState.levelImages[levelId] = [];
         AppState.levelReferenceData[levelId] = {};
+        AppState.showWelcome = true;
       }
     } else {
       // 本地模式：如果新层级没有数据，显示欢迎页
       if (!hasLevelData) {
         // 没有数据，显示欢迎页让用户导入
+        AppState.showWelcome = true;
         this.render();
         return;
       }
-      // 有数据，继续显示
+      // 有数据，继续显示（保持盲评模式状态）
+      AppState.showWelcome = false;
       this.showToast(`已切换到${AppState.getCurrentLevelConfig()?.name || levelId}`, 'success');
     }
 
@@ -162,7 +172,21 @@ const App = {
    */
   updateModeSwitcher() {
     document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === AppState.currentMode);
+      const mode = btn.dataset.mode;
+      btn.classList.toggle('active', mode === AppState.currentMode);
+
+      // 盲评模式下禁用所有模式切换按钮
+      if (AppState.blindRatingMode) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        btn.title = '盲评模式下无法切换模式，请返回欢迎页';
+      } else {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+        btn.title = '';
+      }
     });
   },
 
@@ -170,6 +194,11 @@ const App = {
    * 切换模式
    */
   switchMode(mode) {
+    // 盲评模式下禁止切换任何模式
+    if (AppState.blindRatingMode) {
+      this.showToast('盲评模式下无法切换模式，请返回欢迎页重新选择', 'warning');
+      return;
+    }
     AppState.currentMode = mode;
     this.render();
   },
@@ -196,13 +225,17 @@ const App = {
     const availableImages = this.checkAvailableImagesSync();
     console.log('渲染欢迎页，可用图像:', availableImages);
 
-    // 检查当前层级是否有已加载的数据
-    const hasCurrentLevelData = AppState.currentLevel &&
-      AppState.levelImages[AppState.currentLevel] &&
-      AppState.levelImages[AppState.currentLevel].length > 0;
+    // 检查当前层级是否已加载数据
+    const hasCurrentLevelData = currentLevel &&
+      AppState.levelImages[currentLevel] &&
+      AppState.levelImages[currentLevel].length > 0;
+    const loadedImageCount = hasCurrentLevelData ? AppState.levelImages[currentLevel].length : 0;
+    const hasReferenceData = currentLevel &&
+      AppState.levelReferenceData[currentLevel] &&
+      Object.keys(AppState.levelReferenceData[currentLevel]).length > 0;
 
-    // 检查是否有任何层级有数据
-    const hasAnyLevelData = Object.values(AppState.levelImages).some(images => images && images.length > 0);
+    // 当前选择的模式
+    const selectedMode = AppState.blindRatingMode ? 'blind' : 'browse';
 
     container.innerHTML = `
       <div class="welcome-screen-v2">
@@ -215,30 +248,6 @@ const App = {
 
         <!-- 主内容 -->
         <div class="welcome-content">
-          <!-- 已有数据提示 -->
-          ${hasCurrentLevelData ? `
-          <div class="welcome-data-banner">
-            <div class="data-banner-icon">
-              <i class="fas fa-database"></i>
-            </div>
-            <div class="data-banner-info">
-              <h4>当前层级已有数据</h4>
-              <p>「${levelConfig ? levelConfig.name : currentLevel}」已加载 <strong>${AppState.levelImages[currentLevel].length}</strong> 张图像</p>
-            </div>
-            <div class="data-banner-actions">
-              <button class="btn btn-secondary" onclick="App.goToBrowseMode()">
-                <i class="fas fa-eye"></i> 浏览模式
-              </button>
-              <button class="btn btn-primary" onclick="App.goToRateMode()">
-                <i class="fas fa-star"></i> 打分模式
-              </button>
-              <button class="btn btn-secondary" onclick="App.clearCurrentLevelData()">
-                <i class="fas fa-trash"></i> 清空数据
-              </button>
-            </div>
-          </div>
-          ` : ''}
-
           <!-- 标题区 -->
           <div class="welcome-header">
             <div class="welcome-badge">
@@ -262,54 +271,75 @@ const App = {
           </div>
           ` : ''}
 
-          <!-- 步骤卡片 -->
-          <div class="welcome-steps-v2">
-            <div class="step-card" data-step="1">
-              <div class="step-card-icon">
-                <div class="step-number-ring">1</div>
-                <i class="fas fa-layer-group"></i>
-              </div>
-              <div class="step-card-content">
-                <h3>选择评价层级</h3>
-                <p>从顶部导航栏选择评价维度，系统提供通达性、安全性、舒适性、愉悦性四个独立评价层级</p>
-              </div>
+          <!-- 已加载数据状态 -->
+          ${hasCurrentLevelData ? `
+          <div class="welcome-status-card">
+            <div class="status-card-header">
+              <i class="fas fa-check-circle"></i>
+              <span>数据已就绪</span>
             </div>
-
-            <div class="step-connector">
-              <div class="step-connector-line"></div>
-              <i class="fas fa-chevron-right"></i>
-            </div>
-
-            <div class="step-card" data-step="2">
-              <div class="step-card-icon">
-                <div class="step-number-ring">2</div>
+            <div class="status-card-body">
+              <div class="status-item">
                 <i class="fas fa-images"></i>
+                <span>已加载 <strong>${loadedImageCount}</strong> 张图像</span>
               </div>
-              <div class="step-card-content">
-                <h3>加载街道图像</h3>
-                <p>选择对应层级的图像文件夹，系统将自动识别层级并加载所有待评价的街道断面图像</p>
+              <div class="status-item">
+                <i class="fas fa-file-code"></i>
+                <span>参考数据：${hasReferenceData ? '已加载' : '未加载'}</span>
               </div>
             </div>
-
-            <div class="step-connector">
-              <div class="step-connector-line"></div>
-              <i class="fas fa-chevron-right"></i>
-            </div>
-
-            <div class="step-card" data-step="3">
-              <div class="step-card-icon">
-                <div class="step-number-ring">3</div>
-                <i class="fas fa-clipboard-check"></i>
-              </div>
-              <div class="step-card-content">
-                <h3>开始专业评价</h3>
-                <p>切换到打分模式，对各维度进行专业评分，支持参考数据对照、问题归因选择等功能</p>
-              </div>
+            <div class="status-card-actions">
+              <button class="status-action-btn" onclick="App.loadImages()" title="重新选择图像文件夹">
+                <i class="fas fa-folder-open"></i>
+                重新加载
+              </button>
+              <button class="status-action-btn status-action-btn-danger" onclick="App.clearCurrentLevelData()" title="清空当前层级数据">
+                <i class="fas fa-trash"></i>
+                清空数据
+              </button>
             </div>
           </div>
+          ` : ''}
 
-          <!-- 一键加载区域（如果有预置图像）-->
-          ${availableImages.hasImages && availableImages.currentLevelCount > 0 ? `
+          <!-- 模式选择区域（已加载数据时显示）-->
+          ${hasCurrentLevelData ? `
+          <div class="welcome-mode-selector">
+            <h3>选择评价模式</h3>
+            <div class="mode-options">
+              <div class="mode-option ${selectedMode === 'blind' ? 'active' : ''}" onclick="App.selectWelcomeMode('blind')">
+                <div class="mode-option-icon">
+                  <i class="fas fa-eye-slash"></i>
+                </div>
+                <div class="mode-option-content">
+                  <h4>盲评模式</h4>
+                  <p>直接进入打分，无法查看模型输出，避免评价偏差</p>
+                </div>
+                <div class="mode-option-check">
+                  ${selectedMode === 'blind' ? '<i class="fas fa-check-circle"></i>' : '<i class="far fa-circle"></i>'}
+                </div>
+              </div>
+              <div class="mode-option ${selectedMode === 'browse' ? 'active' : ''}" onclick="App.selectWelcomeMode('browse')">
+                <div class="mode-option-icon">
+                  <i class="fas fa-eye"></i>
+                </div>
+                <div class="mode-option-content">
+                  <h4>浏览模式</h4>
+                  <p>可以先浏览图像和模型输出，再手动进入打分模式</p>
+                </div>
+                <div class="mode-option-check">
+                  ${selectedMode === 'browse' ? '<i class="fas fa-check-circle"></i>' : '<i class="far fa-circle"></i>'}
+                </div>
+              </div>
+            </div>
+            <button class="welcome-enter-btn" onclick="App.enterSelectedMode()">
+              <i class="fas fa-arrow-right"></i>
+              进入评价
+            </button>
+          </div>
+          ` : ''}
+
+          <!-- 一键加载区域（如果有预置图像且未加载）-->
+          ${!hasCurrentLevelData && availableImages.hasImages && availableImages.currentLevelCount > 0 ? `
           <div class="welcome-quick-load">
             <div class="quick-load-banner">
               <div class="quick-load-icon">
@@ -327,7 +357,8 @@ const App = {
           </div>
           ` : ''}
 
-          <!-- 上传区域 -->
+          <!-- 上传区域（未加载数据时显示）-->
+          ${!hasCurrentLevelData ? `
           <div class="welcome-upload-v2">
             <div class="upload-zone-v2" onclick="App.loadImages()">
               <div class="upload-zone-icon">
@@ -343,6 +374,7 @@ const App = {
               </div>
             </div>
           </div>
+          ` : ''}
 
           <!-- 快捷操作 -->
           <div class="welcome-actions">
@@ -366,6 +398,29 @@ const App = {
         </div>
       </div>
     `;
+  },
+
+  /**
+   * 在欢迎页面选择模式
+   */
+  selectWelcomeMode(mode) {
+    AppState.blindRatingMode = (mode === 'blind');
+    this.render();
+  },
+
+  /**
+   * 进入选择的模式
+   */
+  enterSelectedMode() {
+    AppState.showWelcome = false;
+    if (AppState.blindRatingMode) {
+      AppState.currentMode = 'rate';
+    } else {
+      AppState.currentMode = 'browse';
+    }
+    AppState.currentView = 'single';
+    AppState.currentImageIndex = 0;
+    this.render();
   },
 
   /**
@@ -505,8 +560,9 @@ const App = {
       const result = await ImageLoader.loadFromServer(AppState.currentLevel);
 
       if (result.images.length > 0) {
-        this.render();
         this.showToast(`已加载 ${result.images.length} 张图像，参考数据 ${result.referenceCount} 条`, 'success');
+        // 重新渲染欢迎页，显示模式选择区域
+        this.render();
       } else {
         alert('该层级没有找到图像');
       }
@@ -1156,6 +1212,7 @@ const App = {
    * 开始评价（切换到评价模式）
    */
   startRating() {
+    AppState.showWelcome = false;
     AppState.currentMode = 'rate';
     this.render();
   },
@@ -1250,12 +1307,112 @@ const App = {
       if (result.images.length > 0) {
         const levelConfig = AppState.getCurrentLevelConfig();
         this.showToast(`已加载 ${result.images.length} 张图像到「${levelConfig?.name || AppState.currentLevel}」层级`, 'success');
+        // 重新渲染欢迎页，显示模式选择区域
         this.render();
       }
     } catch (error) {
       console.error('加载图像失败:', error);
       alert('加载图像失败: ' + error.message);
     }
+  },
+
+  /**
+   * 显示模式选择对话框（加载图像后）
+   */
+  showModeSelectionDialog() {
+    // 移除已有对话框
+    const existingModal = document.getElementById('modeSelectionModal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modeSelectionModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;';
+
+    modal.innerHTML = `
+      <div style="background:white;border-radius:16px;max-width:480px;width:90%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg, #6366f1, #8b5cf6);color:white;padding:24px;text-align:center;">
+          <div style="font-size:48px;margin-bottom:12px;">
+            <i class="fas fa-clipboard-check"></i>
+          </div>
+          <h3 style="margin:0;font-size:20px;">选择评价模式</h3>
+        </div>
+        <div style="padding:24px;">
+          <p style="margin:0 0 20px;color:#64748b;text-align:center;line-height:1.6;">
+            图像已加载成功，请选择您要进行的评价模式：
+          </p>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <button id="blindRatingBtn" style="display:flex;align-items:center;gap:16px;padding:16px;border:2px solid #e2e8f0;border-radius:12px;background:white;cursor:pointer;transition:all 0.2s;text-align:left;">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg, #10b981, #059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-eye-slash" style="color:white;font-size:20px;"></i>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#1e293b;font-size:15px;">盲评模式（推荐）</div>
+                <div style="color:#64748b;font-size:13px;margin-top:4px;">直接进入打分，无法查看模型输出，避免评价偏差</div>
+              </div>
+            </button>
+            <button id="browseModeBtn" style="display:flex;align-items:center;gap:16px;padding:16px;border:2px solid #e2e8f0;border-radius:12px;background:white;cursor:pointer;transition:all 0.2s;text-align:left;">
+              <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg, #3b82f6, #1d4ed8);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-eye" style="color:white;font-size:20px;"></i>
+              </div>
+              <div>
+                <div style="font-weight:600;color:#1e293b;font-size:15px;">浏览模式</div>
+                <div style="color:#64748b;font-size:13px;margin-top:4px;">先浏览图像和模型输出，再手动进入打分模式</div>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div style="padding:0 24px 24px;">
+          <button id="cancelModeBtn" style="width:100%;padding:12px;border:none;background:#f1f5f9;color:#64748b;border-radius:8px;cursor:pointer;font-size:14px;">
+            取消
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 绑定事件
+    document.getElementById('blindRatingBtn').addEventListener('click', () => this.startBlindRating());
+    document.getElementById('browseModeBtn').addEventListener('click', () => this.startBrowseMode());
+    document.getElementById('cancelModeBtn').addEventListener('click', () => this.closeModeSelectionDialog());
+
+    // 点击背景不关闭（强制选择）
+  },
+
+  /**
+   * 关闭模式选择对话框
+   */
+  closeModeSelectionDialog() {
+    const modal = document.getElementById('modeSelectionModal');
+    if (modal) modal.remove();
+    // 取消时返回欢迎页
+    AppState.showWelcome = true;
+    this.render();
+  },
+
+  /**
+   * 开始盲评模式
+   */
+  startBlindRating() {
+    this.closeModeSelectionDialog();
+    AppState.showWelcome = false;
+    AppState.blindRatingMode = true;
+    AppState.currentMode = 'rate';
+    AppState.currentView = 'single';
+    this.render();
+    this.showToast('已进入盲评模式，返回欢迎页后才能切换模式', 'success');
+  },
+
+  /**
+   * 开始浏览模式
+   */
+  startBrowseMode() {
+    this.closeModeSelectionDialog();
+    AppState.showWelcome = false;
+    AppState.blindRatingMode = false;
+    AppState.currentMode = 'browse';
+    AppState.currentView = 'single';
+    this.render();
   },
 
   /**
@@ -1266,6 +1423,8 @@ const App = {
     AppState.galleryPage = 1;
     AppState.currentMode = 'browse';
     AppState.currentView = 'single';
+    AppState.showWelcome = true;
+    AppState.blindRatingMode = false; // 返回欢迎页时解除盲评模式
 
     // 重新渲染（返回欢迎页）
     this.render();
@@ -1283,6 +1442,7 @@ const App = {
    * 进入浏览模式
    */
   goToBrowseMode() {
+    AppState.showWelcome = false;
     AppState.currentMode = 'browse';
     AppState.currentView = 'single';
     AppState.currentImageIndex = 0;
@@ -1293,6 +1453,7 @@ const App = {
    * 进入打分模式
    */
   goToRateMode() {
+    AppState.showWelcome = false;
     AppState.currentMode = 'rate';
     AppState.currentView = 'single';
     AppState.currentImageIndex = 0;

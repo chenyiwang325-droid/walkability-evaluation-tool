@@ -2870,6 +2870,19 @@ td.element-desc-cell {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* 警告按钮样式 */
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
 /* Toast提示样式 */
 .toast-success {
   position: fixed;
@@ -2905,4 +2918,249 @@ td.element-desc-cell {
     opacity: 0;
     transform: translateX(-50%) translateY(-10px);
   }
+}
+
+/* 欢迎页状态卡片 */
+.welcome-status-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.welcome-status-card .status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #10b981;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.welcome-status-card .status-card-header i {
+  font-size: 20px;
+}
+
+.welcome-status-card .status-card-body {
+  display: flex;
+  gap: 24px;
+}
+
+.welcome-status-card .status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.welcome-status-card .status-item i {
+  color: #94a3b8;
+}
+
+.welcome-status-card .status-item strong {
+  color: #1e293b;
+}
+
+.welcome-status-card .status-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.status-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-action-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.status-action-btn i {
+  font-size: 14px;
+}
+
+.status-action-btn-danger {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.status-action-btn-danger:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+/* 欢迎页模式选择器 */
+.welcome-mode-selector {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.welcome-mode-selector h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.welcome-mode-selector h3::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 2px;
+}
+
+.welcome-mode-selector .mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.welcome-mode-selector .mode-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.welcome-mode-selector .mode-option:hover {
+  border-color: #c7d2fe;
+  background: #fafafa;
+}
+
+.welcome-mode-selector .mode-option.active {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #eef2ff, #faf5ff);
+}
+
+.welcome-mode-selector .mode-option-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.welcome-mode-selector .mode-option:nth-child(1) .mode-option-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.welcome-mode-selector .mode-option:nth-child(1) .mode-option-icon i {
+  color: white;
+  font-size: 20px;
+}
+
+.welcome-mode-selector .mode-option:nth-child(2) .mode-option-icon {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.welcome-mode-selector .mode-option:nth-child(2) .mode-option-icon i {
+  color: white;
+  font-size: 20px;
+}
+
+.welcome-mode-selector .mode-option-content {
+  flex: 1;
+}
+
+.welcome-mode-selector .mode-option-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.welcome-mode-selector .mode-option-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.welcome-mode-selector .mode-option-check {
+  font-size: 20px;
+  color: #d1d5db;
+}
+
+.welcome-mode-selector .mode-option.active .mode-option-check {
+  color: #6366f1;
+}
+
+.welcome-enter-btn {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.welcome-enter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+.welcome-enter-btn i {
+  font-size: 14px;
+}
+
+/* 图像编号样式 */
+.image-number {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.image-card-name .image-number {
+  font-size: 11px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  min-width: 24px;
 }

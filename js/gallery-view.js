@@ -124,6 +124,7 @@ const GalleryView = {
       `;
     }
 
+    const imageNumber = index + 1;
     return `
       <div class="image-card ${isRated ? 'rated' : ''}"
            onclick="GalleryView.selectImage(${index})">
@@ -131,7 +132,10 @@ const GalleryView = {
         <div class="image-card-overlay">
           ${cardInfo}
         </div>
-        <div class="image-card-name" title="${image.name}">${image.name}</div>
+        <div class="image-card-name" title="${image.name}">
+          <span class="image-number">#${imageNumber}</span>
+          ${image.name}
+        </div>
       </div>
     `;
   },

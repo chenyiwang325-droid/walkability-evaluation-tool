@@ -6,8 +6,14 @@ const AppState = {
   // 当前层级
   currentLevel: null,
 
-  // 当前模式: 'browse' | 'rate' | 'edit'
+  // 当前模式: 'browse' | 'rate' | 'edit' | 'welcome'
   currentMode: 'browse',
+
+  // 是否显示欢迎页面
+  showWelcome: true,
+
+  // 是否处于盲评模式（打分模式下不能切换到浏览模式）
+  blindRatingMode: false,
 
   // 当前视图: 'single' | 'gallery'
   currentView: 'single',
@@ -78,6 +84,7 @@ const AppState = {
     this.currentLevel = null;
     this.currentMode = 'browse';
     this.currentView = 'single';
+    this.showWelcome = true;
     this.levelImages = {};
     this.currentImageIndex = 0;
     this.ratings = {};

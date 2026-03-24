@@ -25,10 +25,12 @@ const ImageViewer = {
     let html = '';
 
     // 头部
+    const imageNumber = AppState.currentImageIndex + 1;
     html += `
       <div class="image-viewer-header">
         <div class="image-viewer-title">
           <i class="fas fa-image"></i>
+          <span class="image-number">#${imageNumber}</span>
           <span id="currentImageName">${currentImage.name}</span>
         </div>
         <div class="image-viewer-zoom">
@@ -59,6 +61,7 @@ const ImageViewer = {
       <div class="image-nav">
         <div class="image-nav-info">
           <i class="fas fa-info-circle"></i>
+          <span class="image-number">#${imageNumber}</span>
           <span>${currentImage.name}</span>
         </div>
         <div class="image-nav-controls">
