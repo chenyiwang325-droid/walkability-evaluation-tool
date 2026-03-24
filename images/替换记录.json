@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-24T22:26:06.823212",
+  "results": {
+    "通达性": {
+      "success": true,
+      "replaced": [
+        {
+          "old_image": "11265_front_view.jpg",
+          "new_image": "10463_front_view.jpg",
+          "rating": "较差"
+        }
+      ],
+      "failed": [],
+      "invalid_images": []
+    }
+  }
+}
