@@ -99,6 +99,27 @@
     .export-modal { background: var(--white); border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 360px; box-shadow: var(--shadow-xl); }
     .export-modal h3 { font-family: var(--font-display); margin: 0 0 6px; font-size: 18px; color: var(--gray-800); }
     .export-modal .sub { font-size: 13px; color: var(--gray-500); margin-bottom: 16px; }
+    .eval-done-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(34,197,94,.12); color: #16a34a; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .prog-dropdown { position: relative; }
+    .prog-panel {
+      display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+      width: 290px; max-height: 380px; overflow-y: auto; background: var(--white);
+      border: 1px solid var(--gray-200); border-radius: var(--radius-md); box-shadow: var(--shadow-xl); padding: 8px;
+    }
+    .prog-panel-head { font-size: 13px; font-weight: 600; color: var(--gray-700); padding: 6px 8px; border-bottom: 1px solid var(--gray-100); margin-bottom: 4px; }
+    .prog-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--gray-700); }
+    .prog-item:hover { background: var(--gray-50); }
+    .prog-item.cur { background: var(--safety-light); color: var(--safety-dark); font-weight: 600; }
+    .prog-stat { width: 16px; text-align: center; }
+    .prog-stat.done { color: #16a34a; }
+    .prog-stat.todo { color: var(--gray-300); }
+    .prog-idx { min-width: 44px; }
+    .prog-pid { font-family: var(--font-mono); font-size: 12px; color: var(--gray-500); flex: 1; }
+    .prog-state { font-size: 12px; color: var(--gray-400); }
+    .ex-status { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: var(--radius-md); font-size: 13px; margin: 10px 0; line-height: 1.5; }
+    .ex-status.done { background: rgba(34,197,94,.1); color: #16a34a; }
+    .ex-status.warn { background: rgba(245,158,11,.12); color: #b45309; }
+    .ex-hint { font-size: 12px; color: var(--gray-500); line-height: 1.6; margin: 8px 0 14px; }
     .export-opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); margin-bottom: 8px; cursor: pointer; font-size: 14px; color: var(--gray-700); }
     .export-opt:hover { background: var(--gray-50); border-color: var(--gray-300); }
     .export-opt i { color: var(--safety-primary); width: 18px; text-align: center; }

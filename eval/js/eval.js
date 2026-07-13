@@ -31,6 +31,16 @@
   function pidOf(name) { return (name || "").replace(/_front_view\.\w+$/, ""); }
   function esc(s) { return (s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
+  // 完成判定:评级 + 问题原因(外部:无问题选项或填了归因;内部:总体+SR1+SR2+归因复选)
+  function isComplete(r) {
+    if (!r || !r.level_rating) return false;
+    if (S.mode === "external") {
+      if (r.no_issue) return true;
+      return (r.attributions || []).some(a => (a.name || "").trim());
+    }
+    return !!(r.sr1_rating && r.sr2_rating && r.issue_selection && r.issue_selection.length);
+  }
+
   // ===== 落地页:编号输入(不暴露分组) =====
   function renderLanding(err) {
     app.innerHTML = `
@@ -91,8 +101,9 @@
   // ===== 评价页 =====
   function renderEval() {
     const cur = S.images[S.currentIndex];
-    const done = S.images.filter(im => S.ratings[im.name] && S.ratings[im.name].level_rating).length;
+    const done = S.images.filter(im => isComplete(S.ratings[im.name])).length;
     const pct = Math.round(done / S.images.length * 100);
+    const allDone = done === S.images.length;
     const idStr = String(S.evaluatorId).padStart(2, "0");
     app.innerHTML = `
       <div class="app-container">
@@ -100,10 +111,28 @@
           <div class="eval-header-inner">
             <div class="eval-header-title"><i class="fas fa-shield-alt"></i><h1>街道安全性评价</h1></div>
             <span class="eval-id-chip">评价者 ${idStr}</span>
+            ${allDone ? '<span class="eval-done-chip"><i class="fas fa-check"></i> 已完成</span>' : ''}
             <div class="eval-spacer"></div>
             <div class="eval-progress">
               <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
               <span class="txt">${done}/${S.images.length}</span>
+            </div>
+            <div class="prog-dropdown">
+              <button class="btn btn-secondary" id="progBtn" title="查看完成进度"><i class="fas fa-list-ul"></i> 进度详情</button>
+              <div class="prog-panel" id="progPanel">
+                <div class="prog-panel-head">完成进度 ${done}/${S.images.length} ${allDone ? '(全部完成)' : ''}</div>
+                <div class="prog-list">
+                  ${S.images.map((im, i) => {
+                    const ok = isComplete(S.ratings[im.name]);
+                    return `<div class="prog-item ${i === S.currentIndex ? "cur" : ""}" data-i="${i}">
+                      <span class="prog-stat ${ok ? "done" : "todo"}"><i class="fas fa-${ok ? "check-circle" : "circle"}"></i></span>
+                      <span class="prog-idx">第${i + 1}张</span>
+                      <span class="prog-pid">${pidOf(im.name)}</span>
+                      <span class="prog-state">${ok ? "已完成" : "未完成"}</span>
+                    </div>`;
+                  }).join("")}
+                </div>
+              </div>
             </div>
             <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download"></i> 导出</button>
             <button class="btn btn-secondary" id="exitBtn" title="退出"><i class="fas fa-sign-out-alt"></i></button>
@@ -135,6 +164,26 @@
     document.getElementById("exitBtn").addEventListener("click", () => { if (confirm("退出将返回编号输入页(已评分已保存)。确定?")) { S.evaluatorId = null; S.mode = null; renderLanding(); } });
     document.getElementById("prevBtn").addEventListener("click", () => nav(-1));
     document.getElementById("nextBtn").addEventListener("click", () => { if (S.currentIndex === S.images.length - 1) openExport(); else nav(1); });
+
+    // 进度下拉菜单
+    const progBtn = document.getElementById("progBtn");
+    const progPanel = document.getElementById("progPanel");
+    if (progBtn && progPanel) {
+      progBtn.addEventListener("click", e => { e.stopPropagation(); progPanel.style.display = progPanel.style.display === "block" ? "none" : "block"; });
+      progPanel.addEventListener("click", e => e.stopPropagation());
+      progPanel.querySelectorAll(".prog-item").forEach(it => {
+        it.addEventListener("click", () => {
+          S.currentIndex = +it.dataset.i;
+          progPanel.style.display = "none";
+          renderEval();
+        });
+      });
+    }
+    // 外部点击关闭下拉(只绑一次)
+    if (!window._progOutsideBound) {
+      document.addEventListener("click", () => { const p = document.getElementById("progPanel"); if (p) p.style.display = "none"; });
+      window._progOutsideBound = true;
+    }
   }
 
   // ===== 评分面板 =====
@@ -338,14 +387,23 @@
 
   // ===== 导出 =====
   function openExport() {
-    const done = S.images.filter(im => S.ratings[im.name] && S.ratings[im.name].level_rating).length;
+    const total = S.images.length;
+    const incomplete = S.images.map((im, i) => ({ i, ok: isComplete(S.ratings[im.name]) })).filter(x => !x.ok);
+    const done = total - incomplete.length;
+    const allDone = incomplete.length === 0;
+    const idStr = String(S.evaluatorId).padStart(2, "0");
+    const statusHtml = allDone
+      ? `<div class="ex-status done"><i class="fas fa-check-circle"></i> 全部 ${total} 张已完成评价,可以导出。</div>`
+      : `<div class="ex-status warn"><i class="fas fa-exclamation-triangle"></i> 还有 ${incomplete.length} 张未完成(第 ${incomplete.map(x => x.i + 1).join("、")} 张),建议完成后再导出。未完成项的字段将为空。</div>`;
     const ov = document.createElement("div");
     ov.className = "export-modal-overlay";
     ov.innerHTML = `<div class="export-modal">
       <h3>导出评价结果</h3>
-      <div class="sub">评价者 ${String(S.evaluatorId).padStart(2, "0")} · 已评 ${done}/${S.images.length} 张</div>
-      <div class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> Excel(.xlsx)</div>
-      <div class="export-opt" data-f="json"><i class="fas fa-file-code"></i> JSON</div>
+      <div class="sub">评价者 ${idStr} · 完成进度 ${done}/${total}</div>
+      ${statusHtml}
+      <div class="ex-hint">确认导出?文件将以你的编号命名(安全性评价_评价者${idStr}),包含本次全部 ${total} 张图像的评价结果。</div>
+      <div class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> 确认导出 Excel(.xlsx)</div>
+      <div class="export-opt" data-f="json"><i class="fas fa-file-code"></i> 确认导出 JSON</div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:6px" data-f="cancel">取消</button>
     </div>`;
     app.appendChild(ov);
