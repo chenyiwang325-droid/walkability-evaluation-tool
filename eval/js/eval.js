@@ -267,13 +267,21 @@
           <div class="rating-question">该街道断面安全性的总体评价应为？</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
-      // 内部:问题归因复选
+      // 内部:问题归因(SR1/SR2多选 + 无明显问题,互斥锁定)
+      const iss = r.issue_selection || [];
+      const noIssSel = iss.includes("no_issue");
+      const anySRSel = iss.some(x => x !== "no_issue");
       html += `
         <div class="rating-section">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因(可多选)</div></div>
-          <div class="checkbox-tags">
-            ${DIMS.map(d => `<label class="checkbox-tag ${r.issue_selection && r.issue_selection.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label>`).join("")}
-            <label class="checkbox-tag ${r.issue_selection && r.issue_selection.includes("no_issue") ? "checked" : ""}" data-id="no_issue"><i class="fas fa-check"></i> 无明显问题或影响轻微</label>
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因</div></div>
+          <div class="section-hint">若存在明确问题,可多选对应维度;若仅有轻微问题或无明显问题,请勾选下方选项。二者互斥:勾选"无明显问题"将锁定上方维度,选了维度则锁定下方选项。</div>
+          <div id="issueList" class="${noIssSel ? "disabled" : ""}">
+            <div class="checkbox-tags">
+              ${DIMS.map(d => `<label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label>`).join("")}
+            </div>
+          </div>
+          <div class="noissue-row">
+            <div class="noissue-opt ${noIssSel ? "on" : ""} ${anySRSel ? "is-disabled" : ""}" id="internalNoIssue"><i class="fas fa-check-circle"></i> 无明显问题或影响轻微</div>
           </div>
         </div>`;
     }
@@ -412,24 +420,34 @@
         });
       });
     } else {
-      // 内部归因复选:就地切换
-      app.querySelectorAll(".checkbox-tag").forEach(t => {
+      // 内部归因:SR1/SR2 多选 + 无明显问题(互斥锁定,就地更新)
+      const r = rec();
+      const updateIssueUI = () => {
+        const iss = r.issue_selection || [];
+        const noIss = iss.includes("no_issue");
+        const anySR = iss.some(x => x !== "no_issue");
+        const list = document.getElementById("issueList");
+        if (list) list.classList.toggle("disabled", noIss);
+        app.querySelectorAll("#issueList .checkbox-tag").forEach(t => t.classList.toggle("checked", iss.includes(t.dataset.id)));
+        const ni = document.getElementById("internalNoIssue");
+        if (ni) { ni.classList.toggle("on", noIss); ni.classList.toggle("is-disabled", anySR); }
+      };
+      app.querySelectorAll("#issueList .checkbox-tag").forEach(t => {
         t.addEventListener("click", () => {
-          const r = rec(), id = t.dataset.id;
-          r.issue_selection = r.issue_selection || [];
-          if (id === "no_issue") {
-            if (r.issue_selection.includes("no_issue")) r.issue_selection = r.issue_selection.filter(x => x !== "no_issue");
-            else r.issue_selection = ["no_issue"];
-          } else {
-            r.issue_selection = r.issue_selection.filter(x => x !== "no_issue");
-            if (r.issue_selection.includes(id)) r.issue_selection = r.issue_selection.filter(x => x !== id);
-            else r.issue_selection.push(id);
-          }
+          r.issue_selection = (r.issue_selection || []).filter(x => x !== "no_issue");
+          const id = t.dataset.id;
+          if (r.issue_selection.includes(id)) r.issue_selection = r.issue_selection.filter(x => x !== id);
+          else r.issue_selection.push(id);
           r.timestamp = new Date().toISOString();
-          saveStore();
-          app.querySelectorAll(".checkbox-tag").forEach(tag => tag.classList.toggle("checked", r.issue_selection.includes(tag.dataset.id)));
-          updateProgressUI();
+          saveStore(); updateIssueUI(); updateProgressUI();
         });
+      });
+      const niBtn = document.getElementById("internalNoIssue");
+      if (niBtn) niBtn.addEventListener("click", () => {
+        const noIss = (r.issue_selection || []).includes("no_issue");
+        r.issue_selection = noIss ? [] : ["no_issue"];
+        r.timestamp = new Date().toISOString();
+        saveStore(); updateIssueUI(); updateProgressUI();
       });
     }
   }
