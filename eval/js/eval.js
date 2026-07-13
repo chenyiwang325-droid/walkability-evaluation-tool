@@ -6,17 +6,26 @@
 (function () {
   "use strict";
 
-  // ===== 配置(安全性定义 + 维度,仅内部模式显示维度) =====
-  const SAFETY_DEF = "安全性代表街道空间对人身体伤害、心理压力和其他潜在威胁的感知,主要关注步行道本身及其社会空间的安全性,不包括交通安全。";
+  // ===== 配置(内容来自 知识图谱表格-问题归因.xlsx 与 可步行性评价评分标准.md,勿改) =====
+  const SAFETY_DEF = "安全性代表了对于街道空间对人身体伤害、心理压力和其他潜在威胁的感知，该层级主要关注的是步行道本身或是其社会空间的安全性，不包括交通安全。";
   const DIMS = [
-    { id: "SR1", name: "自然监视不足", desc: "街道环境在“安全关联的空间支撑”层面存在不足:因空间设计(高绿化遮挡、封闭界面、低底层透明度)或设施配置(照明不足)导致视觉通透度差,周边人员难以形成自然监视;且周边土地使用偏向低活动强度、低开放性类型(无商铺、缺少公共开放空间),日常人员活动频次低,削弱步行者安全感。" },
-    { id: "SR2", name: "环境失序", desc: "街道步行环境中物理环境的紊乱和不规范状态:破败待修缮建筑、增加杂乱度的街道要素、设施损坏;废弃空间、较多垃圾、人为损坏;占用人行通道的施工缺乏完善防护等。让步行者感知空间恶化与社会秩序失序,加重对犯罪威胁的担忧。" },
+    { id: "SR1", name: "自然监视不足", desc: "自然监视不足主要关注街道环境中能够增强行人的安全感和抵御潜在威胁的设计和管理措施。自然监视不足是影响街道安全性的原因之一，具体体现为街道环境在“安全关联的空间支撑”层面存在不足——既因空间设计（如高绿化遮挡、封闭界面、低底层透明度）或设施配置（如照明不足）的问题，导致步行区域的视觉通透度较差，周边人员难以有效观察步行空间、无法形成自然的安全监视；又因街道周边土地使用偏向低活动强度、低开放性类型（如无商铺、缺少公共开放空间），日常人员活动频次较低，既难以形成持续的环境活力，也无法为步行者提供足够的心理支撑与安全关联场景，这些状态共同削弱了步行者的安全感，降低了街道的安全防护水平。" },
+    { id: "SR2", name: "环境失序", desc: "环境失序主要关注街道步行环境中物理环境的紊乱和不规范状态。环境失序是影响街道安全性的原因之一，具体表现为街道物理环境、人员活动秩序及安全防护措施存在负面状态——如物理层面存在破败待修缮的建筑、增加杂乱度的街道要素、正常使用下的设施损坏等情况，人员活动相关层面存在废弃空间、较多垃圾、人为导致的设施损坏等问题，安全防护层面则有部分直接占用人行通道的施工行为缺乏完善防护设施。这些状态共同作用，既让步行者感知到空间环境的恶化与社会秩序的失序，加重对犯罪威胁的担忧，又无法充分保障行人通行的实际安全（需注意：外观陈旧但质量较好的建筑、整齐的架空电线或常规电线杆不属于此类问题；施工已设置规范围挡或隔离措施的也不属此情况）。" },
   ];
   const SCALE = { 1: "很差", 2: "较差", 3: "一般", 4: "较好", 5: "很好" };
-  const KNOWLEDGE = `<p><strong>层级定义:</strong>${SAFETY_DEF}</p>
-<p><strong>SR1 自然监视不足:</strong>${DIMS[0].desc}</p>
-<p><strong>SR2 环境失序:</strong>${DIMS[1].desc}</p>
-<p><strong>评级量表:</strong>1 很差(严重问题,重大负面影响)/ 2 较差(明显问题,较大负面影响)/ 3 一般(中性)/ 4 较好(一定正面影响)/ 5 很好(显著正面影响)。</p>`;
+  // 安全性评级判断标准(来自评分标准,仅内部知识库显示,不对外部暴露)
+  const RATING_CRITERIA = [
+    { v: 1, label: "很差", c: "自然监视严重缺失（完全封闭、无照明、无活动），环境严重失序（破败、垃圾、危险施工）" },
+    { v: 2, label: "较差", c: "自然监视明显不足（视线受阻、照明不足），环境存在明显失序（破损、杂乱）" },
+    { v: 3, label: "一般", c: "自然监视存在一定不足（部分区域视线受阻），环境存在轻微失序（局部杂乱）" },
+    { v: 4, label: "较好", c: "自然监视基本充足（视觉通透性良好），环境整体整洁（仅有轻微杂乱）" },
+    { v: 5, label: "很好", c: "自然监视充分（高透明度、充足照明、商铺活动），环境完全整洁有序" },
+  ];
+  // 内部知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不在他处重复)
+  const KNOWLEDGE = `<p><strong>层级定义：</strong>${SAFETY_DEF}</p>
+<p><strong>SR1 自然监视不足：</strong>${DIMS[0].desc}</p>
+<p><strong>SR2 环境失序：</strong>${DIMS[1].desc}</p>
+<p><strong>评级判断标准：</strong></p><ul style="margin:6px 0 0;padding-left:18px">${RATING_CRITERIA.map(r => `<li><strong>${r.v} ${r.label}：</strong>${r.c}</li>`).join("")}</ul>`;
   const PER_STUDENT = 20;
 
   // ===== 状态 =====
@@ -99,7 +108,8 @@
   }
 
   // ===== 评价页 =====
-  function renderEval() {
+  function renderEval(preserveScroll) {
+    const _ps = preserveScroll ? ((document.getElementById("panelPane") || {}).scrollTop || 0) : 0;
     const cur = S.images[S.currentIndex];
     const done = S.images.filter(im => isComplete(S.ratings[im.name])).length;
     const pct = Math.round(done / S.images.length * 100);
@@ -184,14 +194,18 @@
       document.addEventListener("click", () => { const p = document.getElementById("progPanel"); if (p) p.style.display = "none"; });
       window._progOutsideBound = true;
     }
+    // 同图交互保持面板滚动位置(避免点选项跳顶)
+    if (preserveScroll) { const p = document.getElementById("panelPane"); if (p) p.scrollTop = _ps; }
   }
 
-  // ===== 评分面板 =====
+  // ===== 评分面板(外部:定义+总体+归因;内部:知识库(单一来源)+要素识别+分维度仅评级+总体+归因) =====
   function renderPanel(img) {
     const r = S.ratings[img.name] || {};
-    // 公共:安全性定义 + 总体评级
-    let html = `
-      <div class="rating-panel">
+    let html = `<div class="rating-panel">`;
+
+    if (S.mode === "external") {
+      // 外部:安全性定义 + 总体评级
+      html += `
         <div class="rating-section">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-shield-alt"></i> 安全性</div></div>
           <div class="collapsible">
@@ -204,9 +218,7 @@
           <div class="rating-question">该街道断面安全性的总体评价应为？</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
-
-    if (S.mode === "external") {
-      // 多填归因(无提示)
+      // 外部:问题归因多填(无提示)
       const attrs = r.attributions || (r.attributions = []);
       if (!attrs.length) attrs.push({ name: "", analysis: "" });
       const dis = r.no_issue ? "disabled" : "";
@@ -222,34 +234,41 @@
           </div>
         </div>`;
     } else {
-      // 内部:要素识别 + 知识库 + 分维度评级 + 归因复选
-      const ref = S.referenceData[img.name] || {};
-      html += refSection(ref);
+      // 内部:知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不重复)
       html += `
         <div class="rating-section">
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-book"></i> 知识库</div></div>
           <div class="collapsible expanded">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
-              <div class="collapsible-title"><i class="fas fa-book"></i><span>知识库 · 安全性评价标准</span></div>
+              <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>安全性评价标准（定义·维度含义·评级）</span></div>
               <i class="fas fa-chevron-down collapsible-arrow"></i>
             </div>
             <div class="collapsible-content"><div class="collapsible-inner" style="line-height:1.7">${KNOWLEDGE}</div></div>
           </div>
-        </div>
+        </div>`;
+      // 内部:要素识别结果(模型)
+      html += refSection(S.referenceData[img.name] || {});
+      // 内部:分维度评价(SR1/SR2 仅评级,描述见知识库,不重复)
+      html += `
         <div class="rating-section">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-th-list"></i> 分维度评价</div></div>
-          ${DIMS.map(d => `
-            <div class="rating-card ${r["sr" + d.id.replace("SR", "") + "_rating"] ? "completed" : ""}">
-              <div class="collapsible">
-                <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
-                  <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>${d.name}说明</span></div>
-                  <i class="fas fa-chevron-down collapsible-arrow"></i>
-                </div>
-                <div class="collapsible-content"><div class="collapsible-inner">${d.desc}</div></div>
-              </div>
-              <div class="rating-question">${d.name}的评价应为？</div>
-              <div class="scale-buttons">${scaleBtns(r["sr" + d.id.replace("SR", "") + "_rating"], "sr" + d.id.replace("SR", ""))}</div>
-            </div>`).join("")}
-        </div>
+          ${DIMS.map(d => {
+            const f = "sr" + d.id.replace("SR", "");
+            return `<div class="rating-card ${r[f + "_rating"] ? "completed" : ""}">
+              <div class="rating-question">${d.id} ${d.name} 的评价应为？</div>
+              <div class="scale-buttons">${scaleBtns(r[f + "_rating"], f)}</div>
+            </div>`;
+          }).join("")}
+        </div>`;
+      // 内部:总体评级
+      html += `
+        <div class="rating-section">
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
+          <div class="rating-question">该街道断面安全性的总体评价应为？</div>
+          <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
+        </div>`;
+      // 内部:问题归因复选
+      html += `
         <div class="rating-section">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因(可多选)</div></div>
           <div class="checkbox-tags">
@@ -311,7 +330,7 @@
         const f = b.dataset.field, v = b.dataset.value;
         rec()[f === "level" ? "level_rating" : f + "_rating"] = v;
         rec().timestamp = new Date().toISOString();
-        saveStore(); renderEval();
+        saveStore(); renderEval(true);
       });
     });
 
@@ -324,7 +343,7 @@
       if (addBtn) addBtn.addEventListener("click", () => {
         if (r.no_issue) { r.no_issue = ""; }  // 添加问题则清除无问题选项
         r.attributions.push({ name: "", analysis: "" });
-        saveStore(); renderEval();
+        saveStore(); renderEval(true);
       });
 
       // 名称/分析输入(失焦保存,输入实时更新计数)
@@ -345,7 +364,7 @@
           const i = +b.dataset.del;
           if (r.attributions.length <= 1) { r.attributions[0] = { name: "", analysis: "" }; }
           else r.attributions.splice(i, 1);
-          saveStore(); renderEval();
+          saveStore(); renderEval(true);
         });
       });
       // 轻微/无明显(单选项:勾选则锁定上方归因填写并清空,避免既选又填)
@@ -354,7 +373,7 @@
           r.no_issue = !r.no_issue;
           if (r.no_issue) r.attributions = [{ name: "", analysis: "" }];
           r.timestamp = new Date().toISOString();
-          saveStore(); renderEval();
+          saveStore(); renderEval(true);
         });
       });
     } else {
@@ -373,7 +392,7 @@
             else r.issue_selection.push(id);
           }
           r.timestamp = new Date().toISOString();
-          saveStore(); renderEval();
+          saveStore(); renderEval(true);
         });
       });
     }
