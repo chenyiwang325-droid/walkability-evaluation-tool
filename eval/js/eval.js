@@ -102,7 +102,7 @@
     // 首次进入该模式自动弹出使用指引(之后可点顶部"指引"按钮再看)
     if (!localStorage.getItem("eval_guide_seen_" + S.mode)) {
       localStorage.setItem("eval_guide_seen_" + S.mode, "1");
-      showGuide();
+      startTour();
     }
   }
 
@@ -176,7 +176,7 @@
         </main>
       </div>`;
     bindPanel(cur);
-    document.getElementById("guideBtn").addEventListener("click", showGuide);
+    document.getElementById("guideBtn").addEventListener("click", startTour);
     document.getElementById("exportBtn").addEventListener("click", openExport);
     document.getElementById("exitBtn").addEventListener("click", () => { if (confirm("退出将返回编号输入页(已评分已保存)。确定?")) { S.evaluatorId = null; S.mode = null; renderLanding(); } });
     document.getElementById("prevBtn").addEventListener("click", () => nav(-1));
@@ -213,7 +213,7 @@
     if (S.mode === "external") {
       // 外部:安全性定义 + 总体评级
       html += `
-        <div class="rating-section">
+        <div class="rating-section" id="sec-def">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-shield-alt"></i> 安全性</div></div>
           <div class="collapsible">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
@@ -231,7 +231,7 @@
       const dis = r.no_issue ? "disabled" : "";
       const disCls = r.no_issue ? "disabled" : "";
       html += `
-        <div class="rating-section">
+        <div class="rating-section" id="sec-attr">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
           <div class="section-hint">若存在明确问题,请逐个填写问题名称及分析理由(可填多个,每个问题都需写出对应分析);若仅有轻微问题或无明显问题,请勾选下方选项(勾选后上方填写区将锁定不可填写,二者互斥)。</div>
           <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
@@ -243,7 +243,7 @@
     } else {
       // 内部:知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不重复)
       html += `
-        <div class="rating-section">
+        <div class="rating-section" id="sec-knowledge">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-book"></i> 知识库</div></div>
           <div class="collapsible">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
@@ -255,9 +255,16 @@
         </div>`;
       // 内部:要素识别结果(模型)
       html += refSection(S.referenceData[img.name] || {});
+      // 内部:总体评价(在分维度之前)
+      html += `
+        <div class="rating-section" id="sec-overall">
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
+          <div class="rating-question">该街道断面安全性的总体评价应为？</div>
+          <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
+        </div>`;
       // 内部:分维度评价(SR1/SR2 仅评级,描述见知识库,不重复)
       html += `
-        <div class="rating-section">
+        <div class="rating-section" id="sec-dims">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-th-list"></i> 分维度评价</div></div>
           ${DIMS.map(d => {
             const f = "sr" + d.id.replace("SR", "");
@@ -267,19 +274,12 @@
             </div>`;
           }).join("")}
         </div>`;
-      // 内部:总体评级
-      html += `
-        <div class="rating-section">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
-          <div class="rating-question">该街道断面安全性的总体评价应为？</div>
-          <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
-        </div>`;
       // 内部:问题归因(SR1/SR2多选 + 无明显问题,互斥锁定)
       const iss = r.issue_selection || [];
       const noIssSel = iss.includes("no_issue");
       const anySRSel = iss.some(x => x !== "no_issue");
       html += `
-        <div class="rating-section">
+        <div class="rating-section" id="sec-issues">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因</div></div>
           <div class="section-hint">若存在明确问题,可多选对应维度;若仅有轻微问题或无明显问题,请勾选下方选项。二者互斥:勾选"无明显问题"将锁定上方维度,选了维度则锁定下方选项。</div>
           <div id="issueList" class="${noIssSel ? "disabled" : ""}">
@@ -324,7 +324,7 @@
           <thead><tr><th style="padding:6px 8px;text-align:left;background:var(--gray-100);color:var(--gray-500);font-weight:500">要素</th><th style="padding:6px 8px;text-align:left;background:var(--gray-100);color:var(--gray-500);font-weight:500">位置</th><th style="padding:6px 8px;text-align:left;background:var(--gray-100);color:var(--gray-500);font-weight:500">描述</th></tr></thead>
           <tbody>${rows}</tbody></table>`;
     }).join("");
-    return `<div class="rating-section">
+    return `<div class="rating-section" id="sec-ref">
       <div class="collapsible">
         <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
           <div class="collapsible-title"><i class="fas fa-vector-square"></i><span>要素识别结果(参考)</span></div>
@@ -466,32 +466,88 @@
   }
 
   // ===== 导出 =====
-  // 使用指引(首次进入自动弹出,之后可点"指引"按钮查看)
-  function showGuide() {
-    const attrStep = S.mode === "external"
-      ? `<li><strong>问题归因:</strong>若存在明确问题,点"添加一个问题"填写问题名称(≤10字)与分析理由(可添加多个,每个都需写分析);若仅有轻微问题或无明显问题,勾选下方选项(勾选后上方填写区将锁定,二者互斥)。</li>`
-      : `<li><strong>分维度评价:</strong>为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。</li>
-         <li><strong>总体评价:</strong>选一个 1-5 总体评级。</li>
-         <li><strong>问题归因:</strong>勾选存在的问题维度(可多选),或勾选"无明显问题或影响轻微"(二者互斥)。</li>
-         <li><strong>参考信息:</strong>可展开"知识库"查看定义/维度含义/评级标准,展开"要素识别结果"查看空间要素识别(仅供参考)。</li>`;
-    const ov = document.createElement("div");
-    ov.className = "export-modal-overlay";
-    ov.innerHTML = `<div class="export-modal" style="max-width:540px">
-      <h3><i class="fas fa-question-circle" style="color:var(--safety-primary);margin-right:6px"></i>使用指引</h3>
-      <ol style="font-size:14px;line-height:1.85;color:var(--gray-700);padding-left:20px;margin:0 0 14px">
-        <li>查看左侧街景图像,基于安全性定义判断该街道的安全性。</li>
-        <li><strong>安全性评级:</strong>选择 1-5(很差 / 较差 / 一般 / 较好 / 很好)。</li>
-        ${attrStep}
-        <li>完成一张后,点底部"下一张"继续(也可用键盘 ← / → 切换)。</li>
-        <li>顶部"进度详情"可查看完成情况并跳转任意一张。</li>
-        <li>全部 20 张完成后,点右上角"导出",保存文件交回。</li>
-      </ol>
-      <div class="ex-hint">评分自动保存到本浏览器,可随时退出续评。请完成全部 20 张后导出结果。</div>
-      <button class="btn btn-primary" id="guideCloseBtn" style="width:100%;justify-content:center">我已了解,开始评价</button>
-    </div>`;
-    app.appendChild(ov);
-    document.getElementById("guideCloseBtn").addEventListener("click", () => ov.remove());
-    ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
+  // 使用指引:交互式分步导览(高亮框出各功能 + 编号标注)
+  let _tour = null;
+  function startTour() {
+    const steps = (S.mode === "external" ? [
+      { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
+      { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因", c: "若存在明确问题,点“添加一个问题”填写名称(≤10字)与分析理由(可添加多个);若仅有轻微/无明显问题,勾选下方选项(勾选后上方填写区锁定,二者互斥)。", p: "left" },
+      { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
+      { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
+    ] : [
+      { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
+      { sel: "#sec-knowledge", t: "知识库", c: "展开可查看安全性定义、SR1/SR2 维度含义与评级判断标准。", p: "left" },
+      { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
+      { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
+      { sel: "#sec-dims", t: "分维度评价", c: "为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。", p: "left" },
+      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题或影响轻微”(二者互斥)。", p: "left" },
+      { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
+      { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
+    ]).filter(s => document.querySelector(s.sel));
+    if (!steps.length) return;
+    _tour = { steps, i: 0 };
+    showTourStep();
+    window.addEventListener("resize", reposTour);
+    window.addEventListener("scroll", reposTour, true);
+  }
+  function showTourStep() {
+    if (!_tour) return;
+    const { steps, i } = _tour;
+    if (i < 0 || i >= steps.length) { endTour(); return; }
+    const step = steps[i];
+    const target = document.querySelector(step.sel);
+    if (!target) { _tour.i = i + 1; showTourStep(); return; }
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => renderTour(target, step, i, steps.length), 220);
+  }
+  function renderTour(target, step, i, total) {
+    const rect = target.getBoundingClientRect();
+    let mask = document.getElementById("tourMask");
+    if (!mask) { mask = document.createElement("div"); mask.id = "tourMask"; mask.className = "tour-mask"; document.body.appendChild(mask); }
+    let spot = document.getElementById("tourSpotlight");
+    if (!spot) { spot = document.createElement("div"); spot.id = "tourSpotlight"; spot.className = "tour-spotlight"; document.body.appendChild(spot); }
+    spot.style.left = (rect.left - 4) + "px"; spot.style.top = (rect.top - 4) + "px";
+    spot.style.width = (rect.width + 8) + "px"; spot.style.height = (rect.height + 8) + "px";
+    let tip = document.getElementById("tourTooltip");
+    if (!tip) { tip = document.createElement("div"); tip.id = "tourTooltip"; tip.className = "tour-tooltip"; document.body.appendChild(tip); }
+    tip.innerHTML = `<div class="tour-tip-head"><span class="tour-badge">${i + 1}/${total}</span><span class="tour-title">${step.t}</span></div>
+      <div class="tour-content">${step.c}</div>
+      <div class="tour-btns"><button class="tour-skip" id="tourSkip">跳过引导</button><span style="flex:1"></span>
+      <button class="btn btn-secondary tour-prev" id="tourPrev" ${i === 0 ? "disabled" : ""}>上一步</button>
+      <button class="btn btn-primary tour-next" id="tourNext">${i === total - 1 ? "完成" : "下一步"}</button></div>`;
+    positionTip(tip, rect, step.p);
+    document.getElementById("tourSkip").onclick = endTour;
+    document.getElementById("tourPrev").onclick = () => { _tour.i = i - 1; showTourStep(); };
+    document.getElementById("tourNext").onclick = () => { if (i === total - 1) endTour(); else { _tour.i = i + 1; showTourStep(); } };
+  }
+  function reposTour() {
+    if (!_tour) return;
+    const step = _tour.steps[_tour.i];
+    const target = document.querySelector(step.sel);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const spot = document.getElementById("tourSpotlight");
+    if (spot) { spot.style.left = (rect.left - 4) + "px"; spot.style.top = (rect.top - 4) + "px"; spot.style.width = (rect.width + 8) + "px"; spot.style.height = (rect.height + 8) + "px"; }
+    const tip = document.getElementById("tourTooltip");
+    if (tip) positionTip(tip, rect, step.p);
+  }
+  function positionTip(tip, rect, place) {
+    const tw = 340, m = 16;
+    let left, top;
+    if (place === "left") { left = rect.left - tw - m; top = rect.top; }
+    else if (place === "right") { left = rect.right + m; top = rect.top; }
+    else if (place === "top") { left = rect.left + rect.width / 2 - tw / 2; top = rect.top - tip.offsetHeight - m; }
+    else { left = rect.left + rect.width / 2 - tw / 2; top = rect.bottom + m; }
+    left = Math.max(m, Math.min(left, window.innerWidth - tw - m));
+    top = Math.max(m, Math.min(top, window.innerHeight - 150));
+    tip.style.left = left + "px"; tip.style.top = top + "px"; tip.style.width = tw + "px";
+  }
+  function endTour() {
+    ["tourMask", "tourSpotlight", "tourTooltip"].forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
+    window.removeEventListener("resize", reposTour);
+    window.removeEventListener("scroll", reposTour, true);
+    _tour = null;
   }
 
   function openExport() {
