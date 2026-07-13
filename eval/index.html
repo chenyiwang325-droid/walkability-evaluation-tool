@@ -83,6 +83,9 @@
     }
     .add-attr-btn:hover { border-color: var(--safety-primary); color: var(--safety-primary); background: var(--safety-light); }
     .add-attr-btn:disabled { opacity: .4; cursor: not-allowed; }
+    #attrList.disabled { opacity: .45; }
+    #attrList.disabled .attr-entry { pointer-events: none; }
+    #attrList.disabled .text-input, #attrList.disabled .text-area { background: var(--gray-100); }
     .noissue-row { display: flex; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--gray-200); }
     .noissue-opt {
       flex: 1; padding: 10px; border: 1px solid var(--gray-300); border-radius: var(--radius-md);

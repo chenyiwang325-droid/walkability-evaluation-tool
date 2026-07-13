@@ -160,15 +160,16 @@
       // 多填归因(无提示)
       const attrs = r.attributions || (r.attributions = []);
       if (!attrs.length) attrs.push({ name: "", analysis: "" });
+      const dis = r.no_issue ? "disabled" : "";
+      const disCls = r.no_issue ? "disabled" : "";
       html += `
         <div class="rating-section">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
-          <div class="section-hint">若存在明确问题,请逐个填写问题名称及分析理由(可填多个,每个问题都需写出对应分析);若仅有轻微问题或无明显问题,请在下方选择。</div>
-          <div id="attrList">${attrs.map((a, i) => attrEntry(i, a)).join("")}</div>
-          <button class="add-attr-btn" id="addAttrBtn"><i class="fas fa-plus"></i> 添加一个问题</button>
+          <div class="section-hint">若存在明确问题,请逐个填写问题名称及分析理由(可填多个,每个问题都需写出对应分析);若仅有轻微问题或无明显问题,请勾选下方选项(勾选后上方填写区将锁定不可填写,二者互斥)。</div>
+          <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
+          <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题</button>
           <div class="noissue-row">
-            <div class="noissue-opt ${r.no_issue === "minor" ? "on" : ""}" data-ni="minor"><i class="fas fa-exclamation-circle"></i> 存在轻微问题</div>
-            <div class="noissue-opt ${r.no_issue === "none" ? "on" : ""}" data-ni="none"><i class="fas fa-check-circle"></i> 无明显问题</div>
+            <div class="noissue-opt ${r.no_issue ? "on" : ""}" data-ni="1"><i class="fas fa-check-circle"></i> 存在轻微问题或无明显问题</div>
           </div>
         </div>`;
     } else {
@@ -219,12 +220,12 @@
     return h;
   }
 
-  function attrEntry(i, a) {
+  function attrEntry(i, a, dis) {
     return `<div class="attr-entry" data-i="${i}">
-      <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" title="删除"><i class="fas fa-times"></i></button></div>
-      <input class="text-input attr-name" data-i="${i}" maxlength="10" placeholder="问题名称(≤10字)" value="${esc(a.name || "")}" />
+      <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除"><i class="fas fa-times"></i></button></div>
+      <input class="text-input attr-name" data-i="${i}" maxlength="10" placeholder="问题名称(≤10字)" value="${esc(a.name || "")}" ${dis} />
       <div class="attr-meta"><span>请用你自己的话概括问题</span><span class="attr-cnt">${(a.name || "").length}/10</span></div>
-      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="分析理由(说明判断依据)">${esc(a.analysis || "")}</textarea>
+      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="分析理由(说明判断依据)" ${dis}>${esc(a.analysis || "")}</textarea>
     </div>`;
   }
 
@@ -284,7 +285,6 @@
           r.attributions[i].name = inp.value;
           const cnt = inp.parentElement.querySelector(".attr-cnt");
           if (cnt) { cnt.textContent = inp.value.length + "/10"; cnt.style.color = inp.value.length >= 10 ? "var(--warning)" : ""; }
-          if (inp.value.trim()) r.no_issue = "";  // 填了问题则清除无问题
           saveStore();
         });
       });
@@ -299,11 +299,10 @@
           saveStore(); renderEval();
         });
       });
-      // 轻微/无明显(互斥:选则清空归因)
+      // 轻微/无明显(单选项:勾选则锁定上方归因填写并清空,避免既选又填)
       app.querySelectorAll(".noissue-opt").forEach(o => {
         o.addEventListener("click", () => {
-          const cur = r.no_issue;
-          r.no_issue = (cur === o.dataset.ni) ? "" : o.dataset.ni;
+          r.no_issue = !r.no_issue;
           if (r.no_issue) r.attributions = [{ name: "", analysis: "" }];
           r.timestamp = new Date().toISOString();
           saveStore(); renderEval();
@@ -363,7 +362,7 @@
       if (S.mode === "external") {
         const attrs = (r.attributions || []).filter(a => (a.name || "").trim());
         base.problem_attributions = attrs.map(a => `${a.name}｜${a.analysis}`).join(" ; ");
-        base.no_issue = r.no_issue === "minor" ? "存在轻微问题" : r.no_issue === "none" ? "无明显问题" : "";
+        base.no_issue = r.no_issue ? "存在轻微问题或无明显问题" : "";
       } else {
         base.sr1_rating = r.sr1_rating ? SCALE[r.sr1_rating] : "";
         base.sr2_rating = r.sr2_rating ? SCALE[r.sr2_rating] : "";
