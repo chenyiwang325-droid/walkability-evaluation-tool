@@ -128,53 +128,26 @@ const App = {
     // 检查新层级是否已有数据
     const hasLevelData = AppState.hasLevelData(levelId);
 
-    // 如果使用服务器模式，自动加载新层级的图像
-    if (DataManager.useServer) {
+    // 切换层级时始终停留在主页（欢迎页），由用户主动点击"进入评价"，
+    // 不自动跳转到评价/浏览界面，避免反复切换层级时被强制带离主页。
+    AppState.showWelcome = true;
+
+    // 若该层级尚未加载图像，尝试加载（服务器模式走 API，否则走静态 manifest）
+    if (!hasLevelData) {
       try {
-        const result = await ImageLoader.loadFromServer(levelId);
+        const result = DataManager.useServer
+          ? await ImageLoader.loadFromServer(levelId)
+          : await ImageLoader.loadFromStatic(levelId);
         if (result.images.length > 0) {
           this.showToast(`已加载 ${result.images.length} 张图像`, 'success');
-          // 保持之前的模式选择，如果已经在评价界面则继续，否则显示欢迎页
-          if (!AppState.showWelcome && AppState.currentMode) {
-            // 已在评价界面，保持当前模式
-            this.render();
-          } else {
-            // 在欢迎页，保持欢迎页让用户选择模式
-            this.render();
-          }
-          return;
         }
       } catch (error) {
         console.warn('切换层级加载图像失败:', error);
-        // 服务器没有该层级数据，清空该层级图像，回到欢迎页
+        // 加载失败：清空该层级图像，主页会提示用户手动导入
         AppState.levelImages[levelId] = [];
         AppState.levelReferenceData[levelId] = {};
-        AppState.showWelcome = true;
       }
     } else {
-      // 静态/本地模式：若该层级尚未加载，尝试从静态 manifest 自动加载
-      if (!hasLevelData) {
-        try {
-          const result = await ImageLoader.loadFromStatic(levelId);
-          if (result.images.length > 0) {
-            this.showToast(`已加载 ${result.images.length} 张图像`, 'success');
-            if (!AppState.showWelcome && AppState.currentMode) {
-              this.render();
-            } else {
-              this.render();
-            }
-            return;
-          }
-        } catch (error) {
-          console.warn('静态加载图像失败:', error);
-        }
-        // 静态加载也失败，回退到欢迎页让用户手动导入
-        AppState.showWelcome = true;
-        this.render();
-        return;
-      }
-      // 有数据，继续显示（保持盲评模式状态）
-      AppState.showWelcome = false;
       this.showToast(`已切换到${AppState.getCurrentLevelConfig()?.name || levelId}`, 'success');
     }
 
