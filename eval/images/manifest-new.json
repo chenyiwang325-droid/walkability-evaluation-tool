@@ -1,0 +1,218 @@
+{
+  "safety": {
+    "folder": "安全性-新",
+    "count": 52,
+    "hasReference": true,
+    "referenceUrl": "images/安全性-新/安全性-新_参考数据.json",
+    "images": [
+      {
+        "name": "424_front_view.jpg",
+        "url": "images/安全性-新/images/424_front_view.jpg"
+      },
+      {
+        "name": "501_front_view.jpg",
+        "url": "images/安全性-新/images/501_front_view.jpg"
+      },
+      {
+        "name": "780_front_view.jpg",
+        "url": "images/安全性-新/images/780_front_view.jpg"
+      },
+      {
+        "name": "1164_front_view.jpg",
+        "url": "images/安全性-新/images/1164_front_view.jpg"
+      },
+      {
+        "name": "1270_front_view.jpg",
+        "url": "images/安全性-新/images/1270_front_view.jpg"
+      },
+      {
+        "name": "2230_front_view.jpg",
+        "url": "images/安全性-新/images/2230_front_view.jpg"
+      },
+      {
+        "name": "2369_front_view.jpg",
+        "url": "images/安全性-新/images/2369_front_view.jpg"
+      },
+      {
+        "name": "2651_front_view.jpg",
+        "url": "images/安全性-新/images/2651_front_view.jpg"
+      },
+      {
+        "name": "2896_front_view.jpg",
+        "url": "images/安全性-新/images/2896_front_view.jpg"
+      },
+      {
+        "name": "3682_front_view.jpg",
+        "url": "images/安全性-新/images/3682_front_view.jpg"
+      },
+      {
+        "name": "3772_front_view.jpg",
+        "url": "images/安全性-新/images/3772_front_view.jpg"
+      },
+      {
+        "name": "4304_front_view.jpg",
+        "url": "images/安全性-新/images/4304_front_view.jpg"
+      },
+      {
+        "name": "4416_front_view.jpg",
+        "url": "images/安全性-新/images/4416_front_view.jpg"
+      },
+      {
+        "name": "4807_front_view.jpg",
+        "url": "images/安全性-新/images/4807_front_view.jpg"
+      },
+      {
+        "name": "5004_front_view.jpg",
+        "url": "images/安全性-新/images/5004_front_view.jpg"
+      },
+      {
+        "name": "5290_front_view.jpg",
+        "url": "images/安全性-新/images/5290_front_view.jpg"
+      },
+      {
+        "name": "5458_front_view.jpg",
+        "url": "images/安全性-新/images/5458_front_view.jpg"
+      },
+      {
+        "name": "5543_front_view.jpg",
+        "url": "images/安全性-新/images/5543_front_view.jpg"
+      },
+      {
+        "name": "5687_front_view.jpg",
+        "url": "images/安全性-新/images/5687_front_view.jpg"
+      },
+      {
+        "name": "5981_front_view.jpg",
+        "url": "images/安全性-新/images/5981_front_view.jpg"
+      },
+      {
+        "name": "6246_front_view.jpg",
+        "url": "images/安全性-新/images/6246_front_view.jpg"
+      },
+      {
+        "name": "6772_front_view.jpg",
+        "url": "images/安全性-新/images/6772_front_view.jpg"
+      },
+      {
+        "name": "7038_front_view.jpg",
+        "url": "images/安全性-新/images/7038_front_view.jpg"
+      },
+      {
+        "name": "7426_front_view.jpg",
+        "url": "images/安全性-新/images/7426_front_view.jpg"
+      },
+      {
+        "name": "7436_front_view.jpg",
+        "url": "images/安全性-新/images/7436_front_view.jpg"
+      },
+      {
+        "name": "7645_front_view.jpg",
+        "url": "images/安全性-新/images/7645_front_view.jpg"
+      },
+      {
+        "name": "7902_front_view.jpg",
+        "url": "images/安全性-新/images/7902_front_view.jpg"
+      },
+      {
+        "name": "8293_front_view.jpg",
+        "url": "images/安全性-新/images/8293_front_view.jpg"
+      },
+      {
+        "name": "8830_front_view.jpg",
+        "url": "images/安全性-新/images/8830_front_view.jpg"
+      },
+      {
+        "name": "9208_front_view.jpg",
+        "url": "images/安全性-新/images/9208_front_view.jpg"
+      },
+      {
+        "name": "9637_front_view.jpg",
+        "url": "images/安全性-新/images/9637_front_view.jpg"
+      },
+      {
+        "name": "10048_front_view.jpg",
+        "url": "images/安全性-新/images/10048_front_view.jpg"
+      },
+      {
+        "name": "10256_front_view.jpg",
+        "url": "images/安全性-新/images/10256_front_view.jpg"
+      },
+      {
+        "name": "10300_front_view.jpg",
+        "url": "images/安全性-新/images/10300_front_view.jpg"
+      },
+      {
+        "name": "10389_front_view.jpg",
+        "url": "images/安全性-新/images/10389_front_view.jpg"
+      },
+      {
+        "name": "11094_front_view.jpg",
+        "url": "images/安全性-新/images/11094_front_view.jpg"
+      },
+      {
+        "name": "11117_front_view.jpg",
+        "url": "images/安全性-新/images/11117_front_view.jpg"
+      },
+      {
+        "name": "12552_front_view.jpg",
+        "url": "images/安全性-新/images/12552_front_view.jpg"
+      },
+      {
+        "name": "12929_front_view.jpg",
+        "url": "images/安全性-新/images/12929_front_view.jpg"
+      },
+      {
+        "name": "13058_front_view.jpg",
+        "url": "images/安全性-新/images/13058_front_view.jpg"
+      },
+      {
+        "name": "13113_front_view.jpg",
+        "url": "images/安全性-新/images/13113_front_view.jpg"
+      },
+      {
+        "name": "13924_front_view.jpg",
+        "url": "images/安全性-新/images/13924_front_view.jpg"
+      },
+      {
+        "name": "14797_front_view.jpg",
+        "url": "images/安全性-新/images/14797_front_view.jpg"
+      },
+      {
+        "name": "15233_front_view.jpg",
+        "url": "images/安全性-新/images/15233_front_view.jpg"
+      },
+      {
+        "name": "15490_front_view.jpg",
+        "url": "images/安全性-新/images/15490_front_view.jpg"
+      },
+      {
+        "name": "15767_front_view.jpg",
+        "url": "images/安全性-新/images/15767_front_view.jpg"
+      },
+      {
+        "name": "15979_front_view.jpg",
+        "url": "images/安全性-新/images/15979_front_view.jpg"
+      },
+      {
+        "name": "16078_front_view.jpg",
+        "url": "images/安全性-新/images/16078_front_view.jpg"
+      },
+      {
+        "name": "16230_front_view.jpg",
+        "url": "images/安全性-新/images/16230_front_view.jpg"
+      },
+      {
+        "name": "16574_front_view.jpg",
+        "url": "images/安全性-新/images/16574_front_view.jpg"
+      },
+      {
+        "name": "16849_front_view.jpg",
+        "url": "images/安全性-新/images/16849_front_view.jpg"
+      },
+      {
+        "name": "16853_front_view.jpg",
+        "url": "images/安全性-新/images/16853_front_view.jpg"
+      }
+    ]
+  }
+}

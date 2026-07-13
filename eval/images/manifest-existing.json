@@ -1,0 +1,218 @@
+{
+  "safety": {
+    "folder": "安全性",
+    "count": 52,
+    "hasReference": false,
+    "referenceUrl": null,
+    "images": [
+      {
+        "name": "664_front_view.jpg",
+        "url": "images/安全性/images/664_front_view.jpg"
+      },
+      {
+        "name": "708_front_view.jpg",
+        "url": "images/安全性/images/708_front_view.jpg"
+      },
+      {
+        "name": "727_front_view.jpg",
+        "url": "images/安全性/images/727_front_view.jpg"
+      },
+      {
+        "name": "781_front_view.jpg",
+        "url": "images/安全性/images/781_front_view.jpg"
+      },
+      {
+        "name": "919_front_view.jpg",
+        "url": "images/安全性/images/919_front_view.jpg"
+      },
+      {
+        "name": "1042_front_view.jpg",
+        "url": "images/安全性/images/1042_front_view.jpg"
+      },
+      {
+        "name": "1235_front_view.jpg",
+        "url": "images/安全性/images/1235_front_view.jpg"
+      },
+      {
+        "name": "1956_front_view.jpg",
+        "url": "images/安全性/images/1956_front_view.jpg"
+      },
+      {
+        "name": "2110_front_view.jpg",
+        "url": "images/安全性/images/2110_front_view.jpg"
+      },
+      {
+        "name": "2751_front_view.jpg",
+        "url": "images/安全性/images/2751_front_view.jpg"
+      },
+      {
+        "name": "3994_front_view.jpg",
+        "url": "images/安全性/images/3994_front_view.jpg"
+      },
+      {
+        "name": "4448_front_view.jpg",
+        "url": "images/安全性/images/4448_front_view.jpg"
+      },
+      {
+        "name": "5418_front_view.jpg",
+        "url": "images/安全性/images/5418_front_view.jpg"
+      },
+      {
+        "name": "5797_front_view.jpg",
+        "url": "images/安全性/images/5797_front_view.jpg"
+      },
+      {
+        "name": "5912_front_view.jpg",
+        "url": "images/安全性/images/5912_front_view.jpg"
+      },
+      {
+        "name": "6411_front_view.jpg",
+        "url": "images/安全性/images/6411_front_view.jpg"
+      },
+      {
+        "name": "7000_front_view.jpg",
+        "url": "images/安全性/images/7000_front_view.jpg"
+      },
+      {
+        "name": "7096_front_view.jpg",
+        "url": "images/安全性/images/7096_front_view.jpg"
+      },
+      {
+        "name": "7787_front_view.jpg",
+        "url": "images/安全性/images/7787_front_view.jpg"
+      },
+      {
+        "name": "8234_front_view.jpg",
+        "url": "images/安全性/images/8234_front_view.jpg"
+      },
+      {
+        "name": "8529_front_view.jpg",
+        "url": "images/安全性/images/8529_front_view.jpg"
+      },
+      {
+        "name": "8801_front_view.jpg",
+        "url": "images/安全性/images/8801_front_view.jpg"
+      },
+      {
+        "name": "8839_front_view.jpg",
+        "url": "images/安全性/images/8839_front_view.jpg"
+      },
+      {
+        "name": "9099_front_view.jpg",
+        "url": "images/安全性/images/9099_front_view.jpg"
+      },
+      {
+        "name": "9346_front_view.jpg",
+        "url": "images/安全性/images/9346_front_view.jpg"
+      },
+      {
+        "name": "9431_front_view.jpg",
+        "url": "images/安全性/images/9431_front_view.jpg"
+      },
+      {
+        "name": "9497_front_view.jpg",
+        "url": "images/安全性/images/9497_front_view.jpg"
+      },
+      {
+        "name": "9545_front_view.jpg",
+        "url": "images/安全性/images/9545_front_view.jpg"
+      },
+      {
+        "name": "10257_front_view.jpg",
+        "url": "images/安全性/images/10257_front_view.jpg"
+      },
+      {
+        "name": "10281_front_view.jpg",
+        "url": "images/安全性/images/10281_front_view.jpg"
+      },
+      {
+        "name": "10536_front_view.jpg",
+        "url": "images/安全性/images/10536_front_view.jpg"
+      },
+      {
+        "name": "10840_front_view.jpg",
+        "url": "images/安全性/images/10840_front_view.jpg"
+      },
+      {
+        "name": "11239_front_view.jpg",
+        "url": "images/安全性/images/11239_front_view.jpg"
+      },
+      {
+        "name": "11389_front_view.jpg",
+        "url": "images/安全性/images/11389_front_view.jpg"
+      },
+      {
+        "name": "11763_front_view.jpg",
+        "url": "images/安全性/images/11763_front_view.jpg"
+      },
+      {
+        "name": "12092_front_view.jpg",
+        "url": "images/安全性/images/12092_front_view.jpg"
+      },
+      {
+        "name": "12247_front_view.jpg",
+        "url": "images/安全性/images/12247_front_view.jpg"
+      },
+      {
+        "name": "12436_front_view.jpg",
+        "url": "images/安全性/images/12436_front_view.jpg"
+      },
+      {
+        "name": "12624_front_view.jpg",
+        "url": "images/安全性/images/12624_front_view.jpg"
+      },
+      {
+        "name": "12750_front_view.jpg",
+        "url": "images/安全性/images/12750_front_view.jpg"
+      },
+      {
+        "name": "13176_front_view.jpg",
+        "url": "images/安全性/images/13176_front_view.jpg"
+      },
+      {
+        "name": "13440_front_view.jpg",
+        "url": "images/安全性/images/13440_front_view.jpg"
+      },
+      {
+        "name": "13571_front_view.jpg",
+        "url": "images/安全性/images/13571_front_view.jpg"
+      },
+      {
+        "name": "15037_front_view.jpg",
+        "url": "images/安全性/images/15037_front_view.jpg"
+      },
+      {
+        "name": "15048_front_view.jpg",
+        "url": "images/安全性/images/15048_front_view.jpg"
+      },
+      {
+        "name": "15828_front_view.jpg",
+        "url": "images/安全性/images/15828_front_view.jpg"
+      },
+      {
+        "name": "15974_front_view.jpg",
+        "url": "images/安全性/images/15974_front_view.jpg"
+      },
+      {
+        "name": "16183_front_view.jpg",
+        "url": "images/安全性/images/16183_front_view.jpg"
+      },
+      {
+        "name": "16638_front_view.jpg",
+        "url": "images/安全性/images/16638_front_view.jpg"
+      },
+      {
+        "name": "16711_front_view.jpg",
+        "url": "images/安全性/images/16711_front_view.jpg"
+      },
+      {
+        "name": "17560_front_view.jpg",
+        "url": "images/安全性/images/17560_front_view.jpg"
+      },
+      {
+        "name": "17889_front_view.jpg",
+        "url": "images/安全性/images/17889_front_view.jpg"
+      }
+    ]
+  }
+}
