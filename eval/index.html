@@ -86,6 +86,8 @@
     #attrList.disabled { opacity: .45; }
     #attrList.disabled .attr-entry { pointer-events: none; }
     #attrList.disabled .text-input, #attrList.disabled .text-area { background: var(--gray-100); }
+    /* 展开的折叠区放宽高度,避免要素识别/知识库内容被 500px 截断;超出则内部滚动 */
+    .collapsible.expanded .collapsible-content { max-height: 2000px; overflow-y: auto; }
     .noissue-row { display: flex; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--gray-200); }
     .noissue-opt {
       flex: 1; padding: 10px; border: 1px solid var(--gray-300); border-radius: var(--radius-md);

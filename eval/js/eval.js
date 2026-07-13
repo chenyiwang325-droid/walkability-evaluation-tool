@@ -238,7 +238,7 @@
       html += `
         <div class="rating-section">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-book"></i> 知识库</div></div>
-          <div class="collapsible expanded">
+          <div class="collapsible">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
               <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>安全性评价标准（定义·维度含义·评级）</span></div>
               <i class="fas fa-chevron-down collapsible-arrow"></i>
@@ -320,17 +320,38 @@
     </div>`;
   }
 
-  // ===== 绑定交互 =====
+  // 就地更新进度UI(不重渲染面板,保持滚动)
+  function updateProgressUI() {
+    const done = S.images.filter(im => isComplete(S.ratings[im.name])).length;
+    const total = S.images.length, pct = Math.round(done / total * 100), allDone = done === total;
+    const fill = app.querySelector(".eval-progress .fill"); if (fill) fill.style.width = pct + "%";
+    const txt = app.querySelector(".eval-progress .txt"); if (txt) txt.textContent = done + "/" + total;
+    let chip = app.querySelector(".eval-done-chip");
+    if (allDone && !chip) { const id = app.querySelector(".eval-id-chip"); if (id) id.insertAdjacentHTML("afterend", '<span class="eval-done-chip"><i class="fas fa-check"></i> 已完成</span>'); }
+    else if (!allDone && chip) chip.remove();
+    app.querySelectorAll(".prog-item").forEach((it, i) => {
+      const ok = isComplete(S.ratings[S.images[i].name]);
+      const stat = it.querySelector(".prog-stat"); if (stat) { stat.className = "prog-stat " + (ok ? "done" : "todo"); stat.innerHTML = `<i class="fas fa-${ok ? "check-circle" : "circle"}"></i>`; }
+      const st = it.querySelector(".prog-state"); if (st) st.textContent = ok ? "已完成" : "未完成";
+    });
+    const head = app.querySelector(".prog-panel-head"); if (head) head.textContent = `完成进度 ${done}/${total} ${allDone ? "(全部完成)" : ""}`;
+  }
+
+  // ===== 绑定交互(就地更新,避免重渲染导致跳顶) =====
   function bindPanel(img) {
     const rec = () => S.ratings[img.name] || (S.ratings[img.name] = { evaluator_id: S.evaluatorId, image_name: img.name, pid: pidOf(img.name) });
 
-    // 评级按钮
+    // 评级按钮:就地更新选中态+进度,不重渲染(保持滚动)
     app.querySelectorAll(".scale-btn").forEach(b => {
       b.addEventListener("click", () => {
         const f = b.dataset.field, v = b.dataset.value;
-        rec()[f === "level" ? "level_rating" : f + "_rating"] = v;
-        rec().timestamp = new Date().toISOString();
-        saveStore(); renderEval(true);
+        const r = rec();
+        if (f === "level") r.level_rating = v; else r[f + "_rating"] = v;
+        r.timestamp = new Date().toISOString();
+        saveStore();
+        document.querySelectorAll(`.scale-btn[data-field="${f}"]`).forEach(x => x.classList.toggle("selected", x.dataset.value === String(v)));
+        if (f !== "level") { const card = b.closest(".rating-card"); if (card) card.classList.add("completed"); }
+        updateProgressUI();
       });
     });
 
@@ -339,51 +360,64 @@
       r.attributions = r.attributions || [{ name: "", analysis: "" }];
       if (!r.attributions.length) r.attributions.push({ name: "", analysis: "" });
 
+      const bindAttrInputs = () => {
+        app.querySelectorAll(".attr-name").forEach(inp => {
+          inp.addEventListener("input", () => {
+            const i = +inp.dataset.i;
+            r.attributions[i].name = inp.value;
+            const cnt = inp.parentElement.querySelector(".attr-cnt");
+            if (cnt) { cnt.textContent = inp.value.length + "/10"; cnt.style.color = inp.value.length >= 10 ? "var(--warning)" : ""; }
+            saveStore(); updateProgressUI();
+          });
+        });
+        app.querySelectorAll(".attr-analysis").forEach(ta => {
+          ta.addEventListener("input", () => { r.attributions[+ta.dataset.i].analysis = ta.value; r.timestamp = new Date().toISOString(); saveStore(); });
+        });
+        app.querySelectorAll(".attr-del").forEach(b => {
+          b.addEventListener("click", () => {
+            const i = +b.dataset.del;
+            if (r.attributions.length <= 1) r.attributions[0] = { name: "", analysis: "" };
+            else r.attributions.splice(i, 1);
+            saveStore(); renderAttrList(); updateProgressUI();
+          });
+        });
+      };
+      const renderAttrList = () => {
+        const dis = r.no_issue ? "disabled" : "";
+        const list = document.getElementById("attrList");
+        if (list) { list.className = r.no_issue ? "disabled" : ""; list.innerHTML = r.attributions.map((a, i) => attrEntry(i, a, dis)).join(""); }
+        const addBtn = document.getElementById("addAttrBtn");
+        if (addBtn) addBtn.disabled = !!r.no_issue;
+        bindAttrInputs();
+      };
+
       const addBtn = document.getElementById("addAttrBtn");
       if (addBtn) addBtn.addEventListener("click", () => {
-        if (r.no_issue) { r.no_issue = ""; }  // 添加问题则清除无问题选项
+        if (r.no_issue) r.no_issue = "";
         r.attributions.push({ name: "", analysis: "" });
-        saveStore(); renderEval(true);
+        saveStore(); renderAttrList(); updateProgressUI();
       });
+      bindAttrInputs();
 
-      // 名称/分析输入(失焦保存,输入实时更新计数)
-      app.querySelectorAll(".attr-name").forEach(inp => {
-        inp.addEventListener("input", () => {
-          const i = +inp.dataset.i;
-          r.attributions[i].name = inp.value;
-          const cnt = inp.parentElement.querySelector(".attr-cnt");
-          if (cnt) { cnt.textContent = inp.value.length + "/10"; cnt.style.color = inp.value.length >= 10 ? "var(--warning)" : ""; }
-          saveStore();
-        });
-      });
-      app.querySelectorAll(".attr-analysis").forEach(ta => {
-        ta.addEventListener("input", () => { r.attributions[+ta.dataset.i].analysis = ta.value; r.timestamp = new Date().toISOString(); saveStore(); });
-      });
-      app.querySelectorAll(".attr-del").forEach(b => {
-        b.addEventListener("click", () => {
-          const i = +b.dataset.del;
-          if (r.attributions.length <= 1) { r.attributions[0] = { name: "", analysis: "" }; }
-          else r.attributions.splice(i, 1);
-          saveStore(); renderEval(true);
-        });
-      });
-      // 轻微/无明显(单选项:勾选则锁定上方归因填写并清空,避免既选又填)
+      // 轻微/无明显:就地切换+锁定归因(只重渲染归因列表,不动整体面板)
       app.querySelectorAll(".noissue-opt").forEach(o => {
         o.addEventListener("click", () => {
           r.no_issue = !r.no_issue;
           if (r.no_issue) r.attributions = [{ name: "", analysis: "" }];
           r.timestamp = new Date().toISOString();
-          saveStore(); renderEval(true);
+          saveStore();
+          o.classList.toggle("on", r.no_issue);
+          renderAttrList();
+          updateProgressUI();
         });
       });
     } else {
-      // 内部归因复选
+      // 内部归因复选:就地切换
       app.querySelectorAll(".checkbox-tag").forEach(t => {
         t.addEventListener("click", () => {
           const r = rec(), id = t.dataset.id;
           r.issue_selection = r.issue_selection || [];
           if (id === "no_issue") {
-            // 选无问题则清其他
             if (r.issue_selection.includes("no_issue")) r.issue_selection = r.issue_selection.filter(x => x !== "no_issue");
             else r.issue_selection = ["no_issue"];
           } else {
@@ -392,7 +426,9 @@
             else r.issue_selection.push(id);
           }
           r.timestamp = new Date().toISOString();
-          saveStore(); renderEval(true);
+          saveStore();
+          app.querySelectorAll(".checkbox-tag").forEach(tag => tag.classList.toggle("checked", r.issue_selection.includes(tag.dataset.id)));
+          updateProgressUI();
         });
       });
     }
