@@ -10,9 +10,100 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/eval.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* 顶部栏(复用原工具 header 风格) */
+    .eval-header {
+      background: var(--white); border-bottom: 1px solid var(--gray-200);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .eval-header-inner {
+      max-width: 1600px; margin: 0 auto; padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .eval-header-title { display: flex; align-items: center; gap: 12px; }
+    .eval-header-title i { font-size: 24px; color: var(--safety-primary); }
+    .eval-header-title h1 { font-size: 18px; font-weight: 700; color: var(--gray-800); margin: 0; }
+    .eval-id-chip {
+      font-family: var(--font-mono); font-size: 13px; color: var(--gray-600);
+      background: var(--gray-100); padding: 4px 10px; border-radius: 999px;
+    }
+    .eval-spacer { flex: 1; }
+    .eval-progress { display: flex; align-items: center; gap: 10px; }
+    .eval-progress .bar { width: 160px; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; }
+    .eval-progress .fill { height: 100%; background: var(--safety-gradient); transition: width .3s; }
+    .eval-progress .txt { font-size: 13px; font-weight: 600; color: var(--gray-600); }
+
+    /* 落地页(复用 welcome-screen 风格) */
+    .landing-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: var(--gray-50);
+    }
+    .landing-card {
+      background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg);
+      padding: 36px 32px; width: 100%; max-width: 420px; box-shadow: var(--shadow-lg);
+    }
+    .landing-icon {
+      width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: center; background: var(--safety-light);
+    }
+    .landing-icon i { font-size: 32px; color: var(--safety-primary); }
+    .landing-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--gray-800); text-align: center; margin: 0 0 8px; }
+    .landing-sub { font-size: 14px; color: var(--gray-500); text-align: center; line-height: 1.6; margin: 0 0 24px; }
+    .id-input {
+      width: 100%; font-family: var(--font-mono); font-size: 20px; font-weight: 500;
+      text-align: center; letter-spacing: .1em; padding: 12px 14px;
+      border: 1px solid var(--gray-300); border-radius: var(--radius-md); background: var(--gray-50);
+      color: var(--gray-800); outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .id-input:focus { border-color: var(--safety-primary); box-shadow: 0 0 0 3px var(--safety-light); }
+    .id-hint { font-size: 12px; color: var(--gray-400); text-align: center; margin-top: 8px; min-height: 16px; }
+    .id-hint.err { color: var(--error); }
+
+    /* 多填归因(外部) */
+    .attr-entry { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; }
+    .attr-entry-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .attr-entry-head .lbl { font-size: 12px; font-weight: 600; color: var(--gray-500); }
+    .attr-del { background: none; border: none; color: var(--gray-400); cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+    .attr-del:hover { color: var(--error); background: var(--safety-light); }
+    .text-input, .text-area {
+      width: 100%; border: 1px solid var(--gray-300); border-radius: var(--radius-sm);
+      padding: 8px 10px; font-family: var(--font-body); font-size: 14px; background: var(--white);
+      color: var(--gray-800); outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .text-input:focus, .text-area:focus { border-color: var(--safety-primary); box-shadow: 0 0 0 3px var(--safety-light); }
+    .text-area { resize: vertical; min-height: 60px; line-height: 1.6; }
+    .attr-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-400); margin-top: 3px; }
+    .add-attr-btn {
+      width: 100%; padding: 8px; border: 1px dashed var(--gray-300); border-radius: var(--radius-md);
+      background: var(--white); color: var(--gray-500); cursor: pointer; font-size: 13px;
+      font-family: var(--font-body); transition: all .15s;
+    }
+    .add-attr-btn:hover { border-color: var(--safety-primary); color: var(--safety-primary); background: var(--safety-light); }
+    .add-attr-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .noissue-row { display: flex; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--gray-200); }
+    .noissue-opt {
+      flex: 1; padding: 10px; border: 1px solid var(--gray-300); border-radius: var(--radius-md);
+      cursor: pointer; font-size: 13px; text-align: center; background: var(--white); color: var(--gray-600);
+      transition: all .15s;
+    }
+    .noissue-opt.on { border-color: var(--safety-primary); background: var(--safety-light); color: var(--safety-dark); font-weight: 600; }
+
+    .section-hint { font-size: 12px; color: var(--gray-500); line-height: 1.6; margin: 4px 0 10px; }
+    .export-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+    .export-modal { background: var(--white); border-radius: var(--radius-lg); padding: 24px; width: 90%; max-width: 360px; box-shadow: var(--shadow-xl); }
+    .export-modal h3 { font-family: var(--font-display); margin: 0 0 6px; font-size: 18px; color: var(--gray-800); }
+    .export-modal .sub { font-size: 13px; color: var(--gray-500); margin-bottom: 16px; }
+    .export-opt { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); margin-bottom: 8px; cursor: pointer; font-size: 14px; color: var(--gray-700); }
+    .export-opt:hover { background: var(--gray-50); border-color: var(--gray-300); }
+    .export-opt i { color: var(--safety-primary); width: 18px; text-align: center; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--gray-800); color: #fff; padding: 10px 18px; border-radius: var(--radius-md); font-size: 14px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 60; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
 </head>
-<body>
+<body data-level="safety" class="bg-gray-50">
   <div id="app"></div>
   <div id="toast" class="toast"></div>
   <script src="js/eval.js"></script>
