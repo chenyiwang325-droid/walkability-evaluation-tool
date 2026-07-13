@@ -99,6 +99,11 @@
     S.ratings = (store && store.ratings) || {};
     S.currentIndex = 0;
     renderEval();
+    // 首次进入该模式自动弹出使用指引(之后可点顶部"指引"按钮再看)
+    if (!localStorage.getItem("eval_guide_seen_" + S.mode)) {
+      localStorage.setItem("eval_guide_seen_" + S.mode, "1");
+      showGuide();
+    }
   }
 
   function assignImages(all, slot) {
@@ -144,6 +149,7 @@
                 </div>
               </div>
             </div>
+            <button class="btn btn-secondary" id="guideBtn" title="使用指引"><i class="fas fa-question-circle"></i> 指引</button>
             <button class="btn btn-secondary" id="exportBtn"><i class="fas fa-download"></i> 导出</button>
             <button class="btn btn-secondary" id="exitBtn" title="退出"><i class="fas fa-sign-out-alt"></i></button>
           </div>
@@ -170,6 +176,7 @@
         </main>
       </div>`;
     bindPanel(cur);
+    document.getElementById("guideBtn").addEventListener("click", showGuide);
     document.getElementById("exportBtn").addEventListener("click", openExport);
     document.getElementById("exitBtn").addEventListener("click", () => { if (confirm("退出将返回编号输入页(已评分已保存)。确定?")) { S.evaluatorId = null; S.mode = null; renderLanding(); } });
     document.getElementById("prevBtn").addEventListener("click", () => nav(-1));
@@ -459,6 +466,34 @@
   }
 
   // ===== 导出 =====
+  // 使用指引(首次进入自动弹出,之后可点"指引"按钮查看)
+  function showGuide() {
+    const attrStep = S.mode === "external"
+      ? `<li><strong>问题归因:</strong>若存在明确问题,点"添加一个问题"填写问题名称(≤10字)与分析理由(可添加多个,每个都需写分析);若仅有轻微问题或无明显问题,勾选下方选项(勾选后上方填写区将锁定,二者互斥)。</li>`
+      : `<li><strong>分维度评价:</strong>为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。</li>
+         <li><strong>总体评价:</strong>选一个 1-5 总体评级。</li>
+         <li><strong>问题归因:</strong>勾选存在的问题维度(可多选),或勾选"无明显问题或影响轻微"(二者互斥)。</li>
+         <li><strong>参考信息:</strong>可展开"知识库"查看定义/维度含义/评级标准,展开"要素识别结果"查看空间要素识别(仅供参考)。</li>`;
+    const ov = document.createElement("div");
+    ov.className = "export-modal-overlay";
+    ov.innerHTML = `<div class="export-modal" style="max-width:540px">
+      <h3><i class="fas fa-question-circle" style="color:var(--safety-primary);margin-right:6px"></i>使用指引</h3>
+      <ol style="font-size:14px;line-height:1.85;color:var(--gray-700);padding-left:20px;margin:0 0 14px">
+        <li>查看左侧街景图像,基于安全性定义判断该街道的安全性。</li>
+        <li><strong>安全性评级:</strong>选择 1-5(很差 / 较差 / 一般 / 较好 / 很好)。</li>
+        ${attrStep}
+        <li>完成一张后,点底部"下一张"继续(也可用键盘 ← / → 切换)。</li>
+        <li>顶部"进度详情"可查看完成情况并跳转任意一张。</li>
+        <li>全部 20 张完成后,点右上角"导出",保存文件交回。</li>
+      </ol>
+      <div class="ex-hint">评分自动保存到本浏览器,可随时退出续评。请完成全部 20 张后导出结果。</div>
+      <button class="btn btn-primary" id="guideCloseBtn" style="width:100%;justify-content:center">我已了解,开始评价</button>
+    </div>`;
+    app.appendChild(ov);
+    document.getElementById("guideCloseBtn").addEventListener("click", () => ov.remove());
+    ov.addEventListener("click", e => { if (e.target === ov) ov.remove(); });
+  }
+
   function openExport() {
     const total = S.images.length;
     const incomplete = S.images.map((im, i) => ({ i, ok: isComplete(S.ratings[im.name]) })).filter(x => !x.ok);
