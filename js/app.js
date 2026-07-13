@@ -152,9 +152,23 @@ const App = {
         AppState.showWelcome = true;
       }
     } else {
-      // 本地模式：如果新层级没有数据，显示欢迎页
+      // 静态/本地模式：若该层级尚未加载，尝试从静态 manifest 自动加载
       if (!hasLevelData) {
-        // 没有数据，显示欢迎页让用户导入
+        try {
+          const result = await ImageLoader.loadFromStatic(levelId);
+          if (result.images.length > 0) {
+            this.showToast(`已加载 ${result.images.length} 张图像`, 'success');
+            if (!AppState.showWelcome && AppState.currentMode) {
+              this.render();
+            } else {
+              this.render();
+            }
+            return;
+          }
+        } catch (error) {
+          console.warn('静态加载图像失败:', error);
+        }
+        // 静态加载也失败，回退到欢迎页让用户手动导入
         AppState.showWelcome = true;
         this.render();
         return;
@@ -549,15 +563,14 @@ const App = {
       return;
     }
 
-    if (!DataManager.useServer) {
-      alert('一键加载需要服务器模式，请通过启动工具启动');
-      return;
-    }
-
+    // 静态托管（GitHub Pages 等）或本地模式：走静态 manifest 加载；
+    // 服务器模式：走 server API。两者都支持"一键加载"。
     try {
       this.showToast('正在加载图像...', 'info');
 
-      const result = await ImageLoader.loadFromServer(AppState.currentLevel);
+      const result = DataManager.useServer
+        ? await ImageLoader.loadFromServer(AppState.currentLevel)
+        : await ImageLoader.loadFromStatic(AppState.currentLevel);
 
       if (result.images.length > 0) {
         this.showToast(`已加载 ${result.images.length} 张图像，参考数据 ${result.referenceCount} 条`, 'success');

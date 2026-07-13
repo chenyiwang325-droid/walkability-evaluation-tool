@@ -126,6 +126,17 @@ const DataManager = {
    * 检测服务器是否可用
    */
   async checkServerAvailability() {
+    // 仅在本地 localhost 才尝试探测 server.js；
+    // 部署环境（GitHub Pages 等 HTTPS 站点）直接用静态/localStorage 模式，
+    // 避免对 http://localhost:3000 的 mixed-content 请求和 2 秒空等。
+    const host = (location.hostname || '').toLowerCase();
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+    if (!isLocal) {
+      this.useServer = false;
+      console.log('ℹ️ 部署环境，使用静态/localStorage 模式');
+      return false;
+    }
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000);

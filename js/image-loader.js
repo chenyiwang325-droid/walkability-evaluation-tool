@@ -83,6 +83,80 @@ const ImageLoader = {
   },
 
   /**
+   * 从静态 manifest 加载指定层级的图像（纯静态托管模式，无需 server.js）
+   * manifest.json 由 scripts/generate_image_manifest.py 生成，记录各层级图片清单。
+   * 参考数据直接读取各层级已有的 <层级>_参考数据.json 静态文件。
+   */
+  async loadFromStatic(levelId) {
+    try {
+      // 拉取并缓存 manifest（相对路径，适配 GitHub Pages 子路径）
+      if (!this._manifest) {
+        const resp = await fetch('images/manifest.json');
+        if (!resp.ok) {
+          throw new Error('无法加载 images/manifest.json（HTTP ' + resp.status + '）');
+        }
+        this._manifest = await resp.json();
+      }
+
+      const entry = this._manifest[levelId];
+      if (!entry || !entry.images || entry.images.length === 0) {
+        throw new Error('该层级没有图像（manifest 中为空）');
+      }
+
+      // 创建图像数据（url 为相对路径，直接可用）
+      let images = entry.images.map(img => ({
+        name: img.name,
+        path: img.url,
+        url: img.url,
+        size: 0,
+        type: 'image/jpeg'
+      }));
+
+      // 按文件名自然排序
+      images.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }));
+
+      // 初始化当前层级的参考数据（清空）
+      AppState.levelReferenceData[levelId] = {};
+
+      // 加载参考数据（静态 JSON）
+      if (entry.hasReference && entry.referenceUrl) {
+        try {
+          const refResponse = await fetch(entry.referenceUrl);
+          if (refResponse.ok) {
+            const refJson = await refResponse.json();
+            // 兼容 {data: [...]} 或直接数组
+            const refArr = Array.isArray(refJson) ? refJson : (refJson.data || []);
+            if (!AppState.levelReferenceData[levelId]) {
+              AppState.levelReferenceData[levelId] = {};
+            }
+            refArr.forEach(item => {
+              if (item.image_name) {
+                AppState.levelReferenceData[levelId][item.image_name] = item;
+              }
+            });
+            console.log(`(静态)加载${levelId}层级参考数据: ${Object.keys(AppState.levelReferenceData[levelId]).length} 条`);
+          }
+        } catch (e) {
+          console.warn('(静态)加载参考数据失败:', e);
+        }
+      }
+
+      // 设置当前层级的图像数据
+      AppState.levelImages[levelId] = images;
+      AppState.currentImageIndex = 0;
+
+      return {
+        images,
+        referenceCount: Object.keys(AppState.levelReferenceData[levelId] || {}).length,
+        detectedLevel: levelId
+      };
+    } catch (error) {
+      console.error('从静态 manifest 加载图像失败:', error);
+      throw error;
+    }
+  },
+
+  /**
    * 选择文件夹并加载图像到当前层级
    */
   selectFolder() {
