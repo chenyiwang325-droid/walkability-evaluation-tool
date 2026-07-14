@@ -56,8 +56,9 @@
       <div class="landing-wrap">
         <div class="landing-card">
           <div class="landing-icon"><i class="fas fa-shield-alt"></i></div>
-          <h1 class="landing-title">街道安全性评价</h1>
-          <p class="landing-sub">请输入分配给你的评价者编号,进入评价。</p>
+          <h1 class="landing-title">街道步行感知安全性评价</h1>
+          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的专家判断。您将查看若干街景图像,依据安全性定义对每张图像所反映的街道步行安全性进行评级,并指出影响安全性的问题。</p>
+          <p class="landing-sub">请输入分配给您的评价者编号,进入评价。</p>
           <input id="idInput" class="id-input" inputmode="numeric" placeholder="评价者编号" autocomplete="off" />
           <div class="id-hint ${err ? "err" : ""}">${err || "请输入分配给你的编号后进入。"}</div>
           <button class="btn btn-primary" id="enterBtn" style="width:100%;margin-top:14px"><i class="fas fa-arrow-right"></i> 进入评价</button>
@@ -222,22 +223,26 @@
             </div>
             <div class="collapsible-content"><div class="collapsible-inner">${SAFETY_DEF}</div></div>
           </div>
-          <div class="rating-question">该街道断面安全性的总体评价应为？</div>
+          <div class="rating-question">依据上述安全性定义,对该街道的步行感知安全性作出评价:</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
       // 外部:问题归因多填(无提示)
       const attrs = r.attributions || (r.attributions = []);
-      if (!attrs.length) attrs.push({ name: "", analysis: "" });
+      if (!attrs.length) attrs.push({ type: "", analysis: "" });
       const dis = r.no_issue ? "disabled" : "";
       const disCls = r.no_issue ? "disabled" : "";
       html += `
         <div class="rating-section" id="sec-attr">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
-          <div class="section-hint">若存在明确问题,请逐个填写问题名称及分析理由(可填多个,每个问题都需写出对应分析);若仅有轻微问题或无明显问题,请勾选下方选项(勾选后上方填写区将锁定不可填写,二者互斥)。</div>
+          <div class="rating-question">请列出该街道中明确影响步行安全性的问题。</div>
+          <div class="section-hint">若仅一种问题类型,填写一个即可;若存在多种问题类型,可逐个添加。每个问题需结合街景图像中的空间要素写出对应分析。若无明确问题,请勾选下方“无明显问题”(勾选后上方填写区将锁定,二者互斥)。</div>
           <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
-          <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题</button>
+          <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题类型</button>
           <div class="noissue-row">
-            <div class="noissue-opt ${r.no_issue ? "on" : ""}" data-ni="1"><i class="fas fa-check-circle"></i> 存在轻微问题或无明显问题</div>
+            <div class="noissue-opt ${r.no_issue ? "on" : ""}" data-ni="1"><i class="fas fa-check-circle"></i> 无明显问题</div>
+          </div>
+          <div id="noissueExplain" style="display:${r.no_issue ? "block" : "none"};margin-top:8px">
+            <textarea id="noissueExplainInput" class="text-area" placeholder="可选:说明无明显问题的依据(结合街景图像中的空间要素)">${esc(r.no_issue_explain || "")}</textarea>
           </div>
         </div>`;
     } else {
@@ -259,7 +264,7 @@
       html += `
         <div class="rating-section" id="sec-overall">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
-          <div class="rating-question">该街道断面安全性的总体评价应为？</div>
+          <div class="rating-question">依据上述安全性定义,对该街道的步行感知安全性作出评价:</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
       // 内部:分维度评价(SR1/SR2 仅评级,描述见知识库,不重复)
@@ -269,7 +274,7 @@
           ${DIMS.map(d => {
             const f = "sr" + d.id.replace("SR", "");
             return `<div class="rating-card ${r[f + "_rating"] ? "completed" : ""}">
-              <div class="rating-question">${d.id} ${d.name} 的评价应为？</div>
+              <div class="rating-question">针对「${d.name}」维度(依据其含义),评价该维度的表现:</div>
               <div class="scale-buttons">${scaleBtns(r[f + "_rating"], f)}</div>
             </div>`;
           }).join("")}
@@ -281,14 +286,15 @@
       html += `
         <div class="rating-section" id="sec-issues">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因</div></div>
-          <div class="section-hint">若存在明确问题,可多选对应维度;若仅有轻微问题或无明显问题,请勾选下方选项。二者互斥:勾选"无明显问题"将锁定上方维度,选了维度则锁定下方选项。</div>
+          <div class="rating-question">请勾选该街道中明确影响步行安全性的问题维度:</div>
+          <div class="section-hint">可多选对应维度;若无明确问题,勾选“无明显问题”。二者互斥:勾选“无明显问题”将锁定上方维度,选了维度则锁定下方选项。</div>
           <div id="issueList" class="${noIssSel ? "disabled" : ""}">
             <div class="checkbox-tags">
               ${DIMS.map(d => `<label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label>`).join("")}
             </div>
           </div>
           <div class="noissue-row">
-            <div class="noissue-opt ${noIssSel ? "on" : ""} ${anySRSel ? "is-disabled" : ""}" id="internalNoIssue"><i class="fas fa-check-circle"></i> 无明显问题或影响轻微</div>
+            <div class="noissue-opt ${noIssSel ? "on" : ""} ${anySRSel ? "is-disabled" : ""}" id="internalNoIssue"><i class="fas fa-check-circle"></i> 无明显问题</div>
           </div>
         </div>`;
     }
@@ -306,9 +312,9 @@
   function attrEntry(i, a, dis) {
     return `<div class="attr-entry" data-i="${i}">
       <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除"><i class="fas fa-times"></i></button></div>
-      <input class="text-input attr-name" data-i="${i}" maxlength="10" placeholder="问题名称(≤10字)" value="${esc(a.name || "")}" ${dis} />
-      <div class="attr-meta"><span>请用你自己的话概括问题</span><span class="attr-cnt">${(a.name || "").length}/10</span></div>
-      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="分析理由(说明判断依据)" ${dis}>${esc(a.analysis || "")}</textarea>
+      <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="问题类型(≤10字)" value="${esc(a.type || "")}" ${dis} />
+      <div class="attr-meta"><span>概括问题类型</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
+      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街景图像中的空间要素,陈述并解释该问题" ${dis}>${esc(a.analysis || "")}</textarea>
     </div>`;
   }
 
@@ -372,14 +378,14 @@
 
     if (S.mode === "external") {
       const r = rec();
-      r.attributions = r.attributions || [{ name: "", analysis: "" }];
-      if (!r.attributions.length) r.attributions.push({ name: "", analysis: "" });
+      r.attributions = r.attributions || [{ type: "", analysis: "" }];
+      if (!r.attributions.length) r.attributions.push({ type: "", analysis: "" });
 
       const bindAttrInputs = () => {
-        app.querySelectorAll(".attr-name").forEach(inp => {
+        app.querySelectorAll(".attr-type").forEach(inp => {
           inp.addEventListener("input", () => {
             const i = +inp.dataset.i;
-            r.attributions[i].name = inp.value;
+            r.attributions[i].type = inp.value;
             const cnt = inp.parentElement.querySelector(".attr-cnt");
             if (cnt) { cnt.textContent = inp.value.length + "/10"; cnt.style.color = inp.value.length >= 10 ? "var(--warning)" : ""; }
             saveStore(); updateProgressUI();
@@ -391,7 +397,7 @@
         app.querySelectorAll(".attr-del").forEach(b => {
           b.addEventListener("click", () => {
             const i = +b.dataset.del;
-            if (r.attributions.length <= 1) r.attributions[0] = { name: "", analysis: "" };
+            if (r.attributions.length <= 1) r.attributions[0] = { type: "", analysis: "" };
             else r.attributions.splice(i, 1);
             saveStore(); renderAttrList(); updateProgressUI();
           });
@@ -409,7 +415,7 @@
       const addBtn = document.getElementById("addAttrBtn");
       if (addBtn) addBtn.addEventListener("click", () => {
         if (r.no_issue) r.no_issue = "";
-        r.attributions.push({ name: "", analysis: "" });
+        r.attributions.push({ type: "", analysis: "" });
         saveStore(); renderAttrList(); updateProgressUI();
       });
       bindAttrInputs();
@@ -418,14 +424,18 @@
       app.querySelectorAll(".noissue-opt").forEach(o => {
         o.addEventListener("click", () => {
           r.no_issue = !r.no_issue;
-          if (r.no_issue) r.attributions = [{ name: "", analysis: "" }];
+          if (r.no_issue) r.attributions = [{ type: "", analysis: "" }];
           r.timestamp = new Date().toISOString();
           saveStore();
           o.classList.toggle("on", r.no_issue);
           renderAttrList();
+          const ex = document.getElementById("noissueExplain");
+          if (ex) ex.style.display = r.no_issue ? "block" : "none";
           updateProgressUI();
         });
       });
+      const exInp = document.getElementById("noissueExplainInput");
+      if (exInp) exInp.addEventListener("input", () => { r.no_issue_explain = exInp.value; r.timestamp = new Date().toISOString(); saveStore(); });
     } else {
       // 内部归因:SR1/SR2 多选 + 无明显问题(互斥锁定,就地更新)
       const r = rec();
@@ -472,7 +482,7 @@
     const steps = (S.mode === "external" ? [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
       { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-attr", t: "问题归因", c: "若存在明确问题,点“添加一个问题”填写名称(≤10字)与分析理由(可添加多个);若仅有轻微/无明显问题,勾选下方选项(勾选后上方填写区锁定,二者互斥)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因", c: "若存在明确问题,点“添加一个问题类型”填写问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若无明确问题,勾选下方“无明显问题”(可附说明,二者互斥)。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
@@ -481,7 +491,7 @@
       { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
       { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
       { sel: "#sec-dims", t: "分维度评价", c: "为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。", p: "left" },
-      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题或影响轻微”(二者互斥)。", p: "left" },
+      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”(二者互斥)。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));
@@ -583,12 +593,13 @@
       const base = { evaluator_id: S.evaluatorId, image_name: im.name, pid: pidOf(im.name), level_rating: r.level_rating ? SCALE[r.level_rating] : "", timestamp: r.timestamp || "" };
       if (S.mode === "external") {
         const attrs = (r.attributions || []).filter(a => (a.name || "").trim());
-        base.problem_attributions = attrs.map(a => `${a.name}｜${a.analysis}`).join(" ; ");
-        base.no_issue = r.no_issue ? "存在轻微问题或无明显问题" : "";
+        base.problem_attributions = attrs.map(a => `${a.type}｜${a.analysis}`).join(" ; ");
+        base.no_issue = r.no_issue ? "无明显问题" : "";
+        base.no_issue_explain = r.no_issue ? (r.no_issue_explain || "") : "";
       } else {
         base.sr1_rating = r.sr1_rating ? SCALE[r.sr1_rating] : "";
         base.sr2_rating = r.sr2_rating ? SCALE[r.sr2_rating] : "";
-        base.issue_selection = (r.issue_selection || []).map(x => x === "no_issue" ? "无明显问题或影响轻微" : (DIMS.find(d => d.id === x) || {}).name).join(" / ");
+        base.issue_selection = (r.issue_selection || []).map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name).join(" / ");
       }
       return base;
     });
