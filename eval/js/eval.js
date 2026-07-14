@@ -235,7 +235,7 @@
         <div class="rating-section" id="sec-attr">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
           <div class="rating-question">请列出对该街道步行感知安全性存在明确负面影响的问题。</div>
-          <div class="section-hint">若仅一种问题类型,填写一个即可;若存在多种,可逐个添加,每个需结合街景图像中的空间要素写出分析。若认为街道安全性较好或问题影响不明显,请勾选下方“无明显问题”(勾选后上方填写区将锁定,二者互斥)。</div>
+          <div class="section-hint">概括影响步行感知安全性的问题,并填写相关解释说明(结合街景图像中的空间要素展开)。若明确存在多个影响安全性的问题,可逐个添加。若认为街道安全性较好或问题影响不明显,请勾选下方“无明显问题”。</div>
           <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
           <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题类型</button>
           <div class="noissue-row">
@@ -287,7 +287,7 @@
         <div class="rating-section" id="sec-issues">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因</div></div>
           <div class="rating-question">请勾选该街道中明确影响步行安全性的问题维度:</div>
-          <div class="section-hint">可多选对应维度;若无明确问题,勾选“无明显问题”。二者互斥:勾选“无明显问题”将锁定上方维度,选了维度则锁定下方选项。</div>
+          <div class="section-hint">可多选对应维度;若认为街道安全性较好或问题影响不明显,勾选“无明显问题”。</div>
           <div id="issueList" class="${noIssSel ? "disabled" : ""}">
             <div class="checkbox-tags">
               ${DIMS.map(d => `<label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label>`).join("")}
@@ -482,7 +482,7 @@
     const steps = (S.mode === "external" ? [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
       { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-attr", t: "问题归因", c: "点“添加一个问题类型”填写对步行感知安全性有明确负面影响的问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若认为安全性较好或问题影响不明显,勾选下方“无明显问题”(可附说明,二者互斥)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因", c: "点“添加一个问题类型”填写影响步行感知安全性的问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若认为安全性较好或问题影响不明显,勾选下方“无明显问题”(可附说明)。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
@@ -491,7 +491,7 @@
       { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
       { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
       { sel: "#sec-dims", t: "分维度评价", c: "为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。", p: "left" },
-      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”(二者互斥)。", p: "left" },
+      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));
