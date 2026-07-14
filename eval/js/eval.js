@@ -45,7 +45,7 @@
     if (!r || !r.level_rating) return false;
     if (S.mode === "external") {
       if (r.no_issue) return true;
-      return (r.attributions || []).some(a => (a.name || "").trim());
+      return (r.attributions || []).some(a => (a.type || "").trim());
     }
     return !!(r.sr1_rating && r.sr2_rating && r.issue_selection && r.issue_selection.length);
   }
@@ -601,7 +601,7 @@
       const r = S.ratings[im.name] || {};
       const base = { evaluator_id: S.evaluatorId, image_name: im.name, pid: pidOf(im.name), level_rating: r.level_rating ? SCALE[r.level_rating] : "", timestamp: r.timestamp || "" };
       if (S.mode === "external") {
-        const attrs = (r.attributions || []).filter(a => (a.name || "").trim());
+        const attrs = (r.attributions || []).filter(a => (a.type || "").trim());
         base.problem_attributions = attrs.map(a => `${a.type}｜${a.analysis}`).join(" ; ");
         base.no_issue = r.no_issue ? "无明显问题" : "";
         base.no_issue_explain = r.no_issue ? (r.no_issue_explain || "") : "";
