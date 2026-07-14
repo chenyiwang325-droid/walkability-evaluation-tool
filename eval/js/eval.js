@@ -586,7 +586,7 @@
       <h3>导出评价结果</h3>
       <div class="sub">评价者 ${idStr} · 完成进度 ${done}/${total}</div>
       ${statusHtml}
-      <div class="ex-hint">确认导出?文件将以你的编号命名(安全性评价_评价者${idStr}),包含本次全部 ${total} 张图像的评价结果。</div>
+      <div class="ex-hint">确认导出?文件以你的编号命名(安全性评价_评价者${idStr})。Excel 含两个工作表:① 评分总表(每图一行概览)② 问题明细(每条问题一行,便于后续提取)。不同图像的问题数量不同时,也会逐条单独成行,准确适配。</div>
       <div class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> 确认导出 Excel(.xlsx)</div>
       <div class="export-opt" data-f="json"><i class="fas fa-file-code"></i> 确认导出 JSON</div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:6px" data-f="cancel">取消</button>
@@ -598,33 +598,110 @@
     }));
   }
 
-  function records() {
-    return S.images.map(im => {
+  // Sheet1:评分总表(每图一行,人类可读概览;不再把多条问题塞进一格)
+  function summaryRecords() {
+    return S.images.map((im, idx) => {
       const r = S.ratings[im.name] || {};
-      const base = { evaluator_id: S.evaluatorId, image_name: im.name, pid: pidOf(im.name), level_rating: r.level_rating ? SCALE[r.level_rating] : "", timestamp: r.timestamp || "" };
+      const base = {
+        "评价者编号": S.evaluatorId,
+        "图像序号": idx + 1,
+        "图像文件名": im.name,
+        "街景点位pid": pidOf(im.name),
+        "安全性评级": r.level_rating ? SCALE[r.level_rating] : "",
+        "完成状态": isComplete(r) ? "已完成" : "未完成",
+      };
       if (S.mode === "external") {
         const attrs = (r.attributions || []).filter(a => (a.type || "").trim());
-        base.problem_attributions = attrs.map(a => `${a.type}｜${a.analysis}`).join(" ; ");
-        base.no_issue = r.no_issue ? "无明显问题" : "";
-        base.no_issue_explain = r.no_issue ? (r.no_issue_explain || "") : "";
+        base["无明显问题"] = r.no_issue ? "是" : "";
+        base["无明显问题说明"] = r.no_issue ? (r.no_issue_explain || "") : "";
+        base["问题数量"] = r.no_issue ? 0 : attrs.length;
+        base["问题类型概览"] = r.no_issue ? "" : attrs.map(a => a.type).join("、");
       } else {
-        base.sr1_rating = r.sr1_rating ? SCALE[r.sr1_rating] : "";
-        base.sr2_rating = r.sr2_rating ? SCALE[r.sr2_rating] : "";
-        base.issue_selection = (r.issue_selection || []).map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name).join(" / ");
+        const iss = r.issue_selection || [];
+        base["SR1评级"] = r.sr1_rating ? SCALE[r.sr1_rating] : "";
+        base["SR2评级"] = r.sr2_rating ? SCALE[r.sr2_rating] : "";
+        base["归因维度"] = iss.map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name).filter(Boolean).join("、");
+        base["无明显问题"] = iss.includes("no_issue") ? "是" : "";
       }
+      base["提交时间"] = r.timestamp || "";
       return base;
     });
   }
 
+  // Sheet2:问题明细(每条问题一行,tidy 长表,自动化提取友好;问题数量可变,逐条独立成行)
+  function problemRecords() {
+    const out = [];
+    S.images.forEach((im, idx) => {
+      const r = S.ratings[im.name] || {};
+      const ctx = {
+        "评价者编号": S.evaluatorId,
+        "图像序号": idx + 1,
+        "图像文件名": im.name,
+        "街景点位pid": pidOf(im.name),
+        "安全性评级": r.level_rating ? SCALE[r.level_rating] : "",
+      };
+      let seq = 0;
+      if (S.mode === "external") {
+        if (r.no_issue) return; // 无明显问题:不产生问题行(状态已在总表)
+        (r.attributions || []).forEach(a => {
+          if (!(a.type || "").trim()) return; // 跳过空条目,适配可变数量
+          out.push({ ...ctx, "问题序号": ++seq, "问题类型": a.type, "解释说明": a.analysis || "" });
+        });
+      } else {
+        (r.issue_selection || []).filter(x => x !== "no_issue").forEach(id => {
+          out.push({ ...ctx, "问题序号": ++seq, "问题类型": (DIMS.find(d => d.id === id) || {}).name || id, "解释说明": "" });
+        });
+      }
+    });
+    return out;
+  }
+
   function exportExcel() {
-    const ws = XLSX.utils.json_to_sheet(records());
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "评价结果");
+    const ws1 = XLSX.utils.json_to_sheet(summaryRecords());
+    XLSX.utils.book_append_sheet(wb, ws1, "评分总表");
+    const probs = problemRecords();
+    const ws2 = probs.length
+      ? XLSX.utils.json_to_sheet(probs)
+      : XLSX.utils.aoa_to_sheet([["评价者编号", "图像序号", "图像文件名", "街景点位pid", "安全性评级", "问题序号", "问题类型", "解释说明"]]);
+    XLSX.utils.book_append_sheet(wb, ws2, "问题明细");
     XLSX.writeFile(wb, `安全性评价_评价者${String(S.evaluatorId).padStart(2, "0")}.xlsx`);
-    toast("Excel 已导出");
+    toast("Excel 已导出(评分总表 + 问题明细)");
   }
   function exportJSON() {
-    const blob = new Blob([JSON.stringify({ evaluator_id: S.evaluatorId, ratings: records() }, null, 2)], { type: "application/json" });
+    const data = {
+      evaluator_id: S.evaluatorId,
+      mode: S.mode,
+      exported_at: new Date().toISOString(),
+      images: S.images.map((im, idx) => {
+        const r = S.ratings[im.name] || {};
+        const img = {
+          image_index: idx + 1,
+          image_name: im.name,
+          pid: pidOf(im.name),
+          level_rating_value: r.level_rating ? Number(r.level_rating) : null,
+          level_rating: r.level_rating ? SCALE[r.level_rating] : null,
+          completed: isComplete(r),
+        };
+        if (S.mode === "external") {
+          img.no_issue = !!r.no_issue;
+          img.no_issue_explain = r.no_issue ? (r.no_issue_explain || "") : "";
+          img.problems = r.no_issue ? [] : (r.attributions || [])
+            .filter(a => (a.type || "").trim())
+            .map((a, i) => ({ seq: i + 1, type: a.type, analysis: a.analysis || "" }));
+        } else {
+          img.sr1_rating_value = r.sr1_rating ? Number(r.sr1_rating) : null;
+          img.sr1_rating = r.sr1_rating ? SCALE[r.sr1_rating] : null;
+          img.sr2_rating_value = r.sr2_rating ? Number(r.sr2_rating) : null;
+          img.sr2_rating = r.sr2_rating ? SCALE[r.sr2_rating] : null;
+          img.issue_selection = (r.issue_selection || []).slice();
+          img.issue_selection_names = (r.issue_selection || []).map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name);
+        }
+        img.timestamp = r.timestamp || "";
+        return img;
+      }),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
     a.download = `安全性评价_评价者${String(S.evaluatorId).padStart(2, "0")}.json`; a.click();
     toast("JSON 已导出");
