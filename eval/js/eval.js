@@ -313,9 +313,10 @@
   function attrEntry(i, a, dis) {
     return `<div class="attr-entry" data-i="${i}">
       <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除"><i class="fas fa-times"></i></button></div>
-      <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="问题类型(≤10字)" value="${esc(a.type || "")}" ${dis} />
-      <div class="attr-meta"><span>概括问题类型</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
-      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街景图像中的空间要素,陈述并解释该问题" ${dis}>${esc(a.analysis || "")}</textarea>
+      <div class="attr-label"><span>问题类型</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
+      <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="归纳安全性的问题" value="${esc(a.type || "")}" ${dis} />
+      <div class="attr-label">解释说明</div>
+      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街道中的空间要素进行相应的陈述和说明" ${dis}>${esc(a.analysis || "")}</textarea>
     </div>`;
   }
 
