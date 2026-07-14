@@ -45,7 +45,8 @@
     if (!r || !r.level_rating) return false;
     if (S.mode === "external") {
       if (r.no_issue) return true;
-      return (r.attributions || []).some(a => (a.type || "").trim());
+      const attrs = r.attributions || [];
+      return attrs.length > 0 && attrs.every(a => (a.type || "").trim() && (a.analysis || "").trim());
     }
     return !!(r.sr1_rating && r.sr2_rating && r.issue_selection && r.issue_selection.length);
   }
@@ -392,7 +393,7 @@
           });
         });
         app.querySelectorAll(".attr-analysis").forEach(ta => {
-          ta.addEventListener("input", () => { r.attributions[+ta.dataset.i].analysis = ta.value; r.timestamp = new Date().toISOString(); saveStore(); });
+          ta.addEventListener("input", () => { r.attributions[+ta.dataset.i].analysis = ta.value; r.timestamp = new Date().toISOString(); saveStore(); updateProgressUI(); });
         });
         app.querySelectorAll(".attr-del").forEach(b => {
           b.addEventListener("click", () => {
