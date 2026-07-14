@@ -57,7 +57,7 @@
         <div class="landing-card">
           <div class="landing-icon"><i class="fas fa-shield-alt"></i></div>
           <h1 class="landing-title">街道步行感知安全性评价</h1>
-          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的评价。本次共 20 张街景图像,每张需完成两步:① 依据安全性定义进行评级;② 列出对步行感知安全性有明确负面影响的问题,或选择“无明显问题”。</p>
+          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的评价。您将查看若干街景图像,依据安全性定义对每张图像所反映的街道步行安全性进行评级,并指出影响安全性的问题。</p>
           <p class="landing-sub">请输入分配给您的评价者编号,进入评价。</p>
           <input id="idInput" class="id-input" inputmode="numeric" placeholder="评价者编号" autocomplete="off" />
           <div class="id-hint ${err ? "err" : ""}">${err || "请输入分配给你的编号后进入。"}</div>
@@ -496,7 +496,8 @@
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));
     if (!steps.length) return;
-    _tour = { steps, i: 0 };
+    const intro = { sel: null, t: "评价概览", c: "本次评价共 20 张街景图像。每张需完成两步:① 依据安全性定义进行安全性评级;② 列出对步行感知安全性有明确负面影响的问题,或选择“无明显问题”。下面逐一介绍各功能区域。", p: "center" };
+    _tour = { steps: [intro, ...steps], i: 0 };
     showTourStep();
     window.addEventListener("resize", reposTour);
     window.addEventListener("scroll", reposTour, true);
@@ -506,19 +507,24 @@
     const { steps, i } = _tour;
     if (i < 0 || i >= steps.length) { endTour(); return; }
     const step = steps[i];
+    if (!step.sel) { renderTour(null, step, i, steps.length); return; }
     const target = document.querySelector(step.sel);
     if (!target) { _tour.i = i + 1; showTourStep(); return; }
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => renderTour(target, step, i, steps.length), 220);
   }
   function renderTour(target, step, i, total) {
-    const rect = target.getBoundingClientRect();
+    const rect = target ? target.getBoundingClientRect() : null;
     let mask = document.getElementById("tourMask");
     if (!mask) { mask = document.createElement("div"); mask.id = "tourMask"; mask.className = "tour-mask"; document.body.appendChild(mask); }
+    mask.style.background = target ? "transparent" : "rgba(17,24,39,.45)";
     let spot = document.getElementById("tourSpotlight");
     if (!spot) { spot = document.createElement("div"); spot.id = "tourSpotlight"; spot.className = "tour-spotlight"; document.body.appendChild(spot); }
-    spot.style.left = (rect.left - 4) + "px"; spot.style.top = (rect.top - 4) + "px";
-    spot.style.width = (rect.width + 8) + "px"; spot.style.height = (rect.height + 8) + "px";
+    if (target) {
+      spot.style.display = "";
+      spot.style.left = (rect.left - 4) + "px"; spot.style.top = (rect.top - 4) + "px";
+      spot.style.width = (rect.width + 8) + "px"; spot.style.height = (rect.height + 8) + "px";
+    } else { spot.style.display = "none"; }
     let tip = document.getElementById("tourTooltip");
     if (!tip) { tip = document.createElement("div"); tip.id = "tourTooltip"; tip.className = "tour-tooltip"; document.body.appendChild(tip); }
     tip.innerHTML = `<div class="tour-tip-head"><span class="tour-badge">${i + 1}/${total}</span><span class="tour-title">${step.t}</span></div>
@@ -534,6 +540,8 @@
   function reposTour() {
     if (!_tour) return;
     const step = _tour.steps[_tour.i];
+    const tip0 = document.getElementById("tourTooltip");
+    if (!step.sel) { if (tip0) positionTip(tip0, null, "center"); return; }
     const target = document.querySelector(step.sel);
     if (!target) return;
     const rect = target.getBoundingClientRect();
@@ -545,7 +553,8 @@
   function positionTip(tip, rect, place) {
     const tw = 340, m = 16;
     let left, top;
-    if (place === "left") { left = rect.left - tw - m; top = rect.top; }
+    if (!rect || place === "center") { left = (window.innerWidth - tw) / 2; top = (window.innerHeight - (tip.offsetHeight || 220)) / 2; }
+    else if (place === "left") { left = rect.left - tw - m; top = rect.top; }
     else if (place === "right") { left = rect.right + m; top = rect.top; }
     else if (place === "top") { left = rect.left + rect.width / 2 - tw / 2; top = rect.top - tip.offsetHeight - m; }
     else { left = rect.left + rect.width / 2 - tw / 2; top = rect.bottom + m; }
