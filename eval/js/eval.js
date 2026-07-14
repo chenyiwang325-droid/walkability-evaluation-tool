@@ -57,7 +57,7 @@
         <div class="landing-card">
           <div class="landing-icon"><i class="fas fa-shield-alt"></i></div>
           <h1 class="landing-title">街道步行感知安全性评价</h1>
-          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的专家判断。您将查看若干街景图像,依据安全性定义对每张图像所反映的街道步行安全性进行评级,并指出影响安全性的问题。</p>
+          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的评价。本次共 20 张街景图像,每张需完成两步:① 依据安全性定义进行评级;② 列出对步行感知安全性有明确负面影响的问题,或选择“无明显问题”。</p>
           <p class="landing-sub">请输入分配给您的评价者编号,进入评价。</p>
           <input id="idInput" class="id-input" inputmode="numeric" placeholder="评价者编号" autocomplete="off" />
           <div class="id-hint ${err ? "err" : ""}">${err || "请输入分配给你的编号后进入。"}</div>
@@ -234,8 +234,8 @@
       html += `
         <div class="rating-section" id="sec-attr">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
-          <div class="rating-question">请列出该街道中明确影响步行安全性的问题。</div>
-          <div class="section-hint">若仅一种问题类型,填写一个即可;若存在多种问题类型,可逐个添加。每个问题需结合街景图像中的空间要素写出对应分析。若无明确问题,请勾选下方“无明显问题”(勾选后上方填写区将锁定,二者互斥)。</div>
+          <div class="rating-question">请列出对该街道步行感知安全性存在明确负面影响的问题。</div>
+          <div class="section-hint">若仅一种问题类型,填写一个即可;若存在多种,可逐个添加,每个需结合街景图像中的空间要素写出分析。若认为街道安全性较好或问题影响不明显,请勾选下方“无明显问题”(勾选后上方填写区将锁定,二者互斥)。</div>
           <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
           <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题类型</button>
           <div class="noissue-row">
@@ -482,7 +482,7 @@
     const steps = (S.mode === "external" ? [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
       { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-attr", t: "问题归因", c: "若存在明确问题,点“添加一个问题类型”填写问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若无明确问题,勾选下方“无明显问题”(可附说明,二者互斥)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因", c: "点“添加一个问题类型”填写对步行感知安全性有明确负面影响的问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若认为安全性较好或问题影响不明显,勾选下方“无明显问题”(可附说明,二者互斥)。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
