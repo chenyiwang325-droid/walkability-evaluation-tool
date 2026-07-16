@@ -103,8 +103,15 @@
         <div class="landing-card">
           <div class="landing-icon"><i class="fas fa-shield-alt"></i></div>
           <h1 class="landing-title">街道步行感知安全性评价</h1>
-          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的评价。您将查看若干街景图像,依据安全性定义对每张图像所反映的街道步行安全性进行评级,并指出影响安全性的问题。</p>
-          <p class="landing-sub">请输入分配给您的评价者编号,进入评价。</p>
+          <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的专业判断。您将查看若干街景图像，依次完成以下评价内容：</p>
+          <div class="landing-steps">
+            <div class="landing-step"><span class="step-no">①</span> 依据安全性定义，对每张街景图像的步行安全性进行评级（1 很差 ~ 5 很好）</div>
+            <div class="landing-step"><span class="step-no">②</span> 诊断影响步行安全性的问题，说明问题类型与分析依据</div>
+            <div class="landing-step"><span class="step-no">③</span> 针对诊断出的问题，提出相应的优化策略（方向与理由）</div>
+            <div class="landing-step"><span class="step-no">④</span> 针对所提出的优化策略，给出具体的实施举措（做法与说明）</div>
+          </div>
+          <p class="landing-note">若认为街道安全性良好、无明显问题，可直接选择"无明显问题"完成该图。</p>
+          <p class="landing-sub">请输入分配给您的评价者编号，进入评价。</p>
           <input id="idInput" class="id-input" inputmode="numeric" placeholder="评价者编号" autocomplete="off" />
           <div class="id-hint ${err ? "err" : ""}">${err || "请输入分配给你的编号后进入。"}</div>
           <button class="btn btn-primary" id="enterBtn" style="width:100%;margin-top:14px"><i class="fas fa-arrow-right"></i> 进入评价</button>
