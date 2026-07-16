@@ -857,3 +857,72 @@
 .animate-pulse {
   animation: pulse 2s ease-in-out infinite;
 }
+
+/* ===== 优化策略与实施举措 推理链路层级(问题→策略→举措 分组) ===== */
+.chain-sr{margin:0 0 14px;padding:10px 12px 6px;border:1px solid var(--line);border-left:3px solid #4f7a9e;border-radius:6px;background:rgba(79,122,158,.03)}
+.chain-sr-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.chain-sr-h .chip-sr{font-weight:600;font-size:13px;color:#243447;background:#eef3f8;border:1px solid #d6e1ec;border-radius:4px;padding:2px 8px}
+.chain-sr-h .chain-arrow{font-size:12px;color:var(--mute)}
+.chain-body{display:flex;flex-direction:column;gap:8px}
+.chain-si{display:flex;flex-direction:column;gap:6px}
+.chain-si .checkbox-tag{font-size:13px}
+.chain-sm{margin-left:18px;padding-left:10px;border-left:2px dashed #d6e1ec;display:flex;flex-wrap:wrap;gap:6px}
+.chain-sm .checkbox-tag{font-size:12.5px;background:#f7f9fb}
+
+/* 推理链路内涵展开 */
+.chain-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chain-info-btn{font-size:12px;color:#4f7a9e;cursor:pointer;user-select:none;padding:2px 6px;border:1px solid #d6e1ec;border-radius:4px;background:#f7f9fb;transition:.12s}
+.chain-info-btn:hover{background:#eef3f8}
+.chain-info-btn.on{background:#4f7a9e;color:#fff;border-color:#4f7a9e}
+.chain-info-box{margin:4px 0 6px;padding:8px 10px;font-size:12.5px;line-height:1.65;color:#3a3530;background:#faf8f2;border:1px solid #ece5d4;border-radius:5px;border-left:3px solid #cbb87e}
+.chain-sm-item{display:flex;flex-direction:column;gap:2px}
+
+/* 知识库:完整推理链路层级总览(与下方选择区同构对位) */
+.kb-title{margin:14px 0 8px;padding-top:10px;border-top:1px dashed var(--line);font-weight:600;font-size:13.5px;color:#243447}
+.kb-sr{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-left:3px solid #4f7a9e;border-radius:6px;background:rgba(79,122,158,.03)}
+.kb-sr-h{font-weight:600;font-size:13px;color:#243447;margin-bottom:4px}
+.kb-si{margin:8px 0 0;padding:8px 10px;background:#fff;border:1px solid #eef1f4;border-radius:5px}
+.kb-si-h{font-weight:600;font-size:12.5px;color:#3a5a78;margin-bottom:3px}
+.kb-sm-list{margin:6px 0 0;padding-left:10px;border-left:2px dashed #e3e8ee}
+.kb-sm{margin:0 0 6px;font-size:12px}
+.kb-sm-h{color:#555;margin-bottom:2px}
+.kb-tag{display:inline-block;font-size:11px;font-weight:600;color:#243447;background:#eef3f8;border:1px solid #d6e1ec;border-radius:3px;padding:1px 6px;margin-right:4px}
+.kb-tag.sub{color:#3a5a78;background:#eaf0f5}
+.kb-tag.sm{color:#6b5a3a;background:#f6f0e6;border-color:#ece0c8}
+.kb-desc{font-size:12.5px;line-height:1.65;color:#3a3530;margin:2px 0 4px}
+/* 问题归因区SR标签inline内涵(sr-tags每项一行) */
+.sr-tags{flex-direction:column;align-items:flex-start;gap:4px}
+
+/* 知识库侧边抽屉:右下角按钮 + 右侧推开式侧栏(展开时主区左移让位,不遮挡评价区) */
+.kb-toggle{position:fixed;right:20px;bottom:24px;z-index:60;display:flex;align-items:center;gap:6px;padding:9px 16px;border:none;border-radius:24px;background:#243447;color:#fff;font-size:13px;font-weight:600;box-shadow:0 4px 14px rgba(36,52,71,.32);cursor:pointer;transition:.15s}
+.kb-toggle:hover{background:#324659;transform:translateY(-1px)}
+.kb-toggle i{font-size:14px}
+.kb-drawer{position:fixed;top:0;right:0;width:400px;max-width:85vw;height:100vh;background:#fff;z-index:70;box-shadow:-6px 0 28px rgba(0,0,0,.16);transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.kb-drawer.open{transform:translateX(0)}
+.kb-drawer-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;background:#243447;color:#fff;font-size:14px;font-weight:600}
+.kb-drawer-title{display:inline-flex;align-items:center}
+.kb-drawer-title i{margin-right:6px}
+.kb-drawer-close{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.kb-drawer-close:hover{background:rgba(255,255,255,.28)}
+.kb-drawer-body{flex:1;overflow-y:auto;padding:16px 18px;line-height:1.7}
+body.kb-open .app-container{margin-right:400px;transition:margin-right .28s cubic-bezier(.4,0,.2,1)}
+@media(max-width:900px){body.kb-open .app-container{margin-right:0}.kb-drawer{width:100vw;max-width:100vw}}
+
+/* 对外:问题→优化策略→实施举措 嵌套填空 */
+.nest-block{margin:10px 0 4px;padding:10px 12px;border:1px solid var(--gray-200,#e5e7eb);border-left:3px solid #4f7a9e;border-radius:6px;background:rgba(79,122,158,.025)}
+.nest-deeper{border-left-color:#cbb87e;background:rgba(203,184,126,.05)}
+.nest-block-h{font-weight:600;font-size:13px;color:#243447;display:flex;align-items:center;gap:6px}
+.nest-block-h i{color:#4f7a9e}
+.nest-deeper .nest-block-h i{color:#a98a4e}
+.nest-hint{font-size:11.5px;color:var(--gray-500,#6b7280);margin:3px 0 6px;line-height:1.5}
+.strategy-entry,.measure-entry{margin:8px 0;padding:10px 12px;background:#fff;border:1px solid #eef1f4;border-radius:5px}
+.measure-entry{background:#fdfcf8}
+.nest-entry-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.nest-entry-head .lbl{font-weight:600;font-size:12.5px;color:#3a5a78}
+.measure-entry .lbl{color:#7a6a3e}
+.nest-del{border:none;background:rgba(0,0,0,.04);color:#999;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:11px}
+.nest-del:hover{background:rgba(192,84,84,.12);color:#c05454}
+.add-nest-btn{margin-top:6px;border:1px dashed #b8c4d0;background:transparent;color:#4f7a9e;font-size:12px;padding:5px 12px;border-radius:5px;cursor:pointer;font-weight:600}
+.add-nest-btn:hover{background:#eef3f8}
+.add-nest-btn:disabled{opacity:.4;cursor:not-allowed}
+.nest-block .attr-label{font-size:11.5px;color:var(--gray-600,#4b5563);margin:6px 0 2px}

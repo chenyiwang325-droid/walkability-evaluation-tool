@@ -21,11 +21,41 @@
     { v: 4, label: "较好", c: "自然监视基本充足（视觉通透性良好），环境整体整洁（仅有轻微杂乱）" },
     { v: 5, label: "很好", c: "自然监视充分（高透明度、充足照明、商铺活动），环境完全整洁有序" },
   ];
+  // ===== 推理链路:问题归因(SR) -> 优化策略(SI) -> 实施举措(SM) 映射(来自知识图谱与pro对策提示词) =====
+  const STRATEGIES = [
+    { id:"SI1", name:"增强街道可见性", parent:"SR1", desc:"强化街道的自然监视能力，提升步行空间视线通透性与照明覆盖，减少遮挡干扰，让步行环境处于有效可视范围，增强安全感知。" },
+    { id:"SI2", name:"提升沿街功能支持", parent:"SR1", desc:"增强周围环境安全支持力度，丰富街道周边活性业态与开放空间，提升人员活动频次，为步行者提供心理与实际层面的安全保障。" },
+    { id:"SI3", name:"改善物质环境印象", parent:"SR2", desc:"针对街道物理环境中存在的破败、杂乱等各类负面状态，从优化空间整体品质的方向入手，改善环境呈现的无序性，提升空间的秩序与整洁程度。" },
+    { id:"SI4", name:"提升社会环境秩序", parent:"SR2", desc:"针对与人员活动直接相关的空间无序状态，从规范空间使用、强化秩序管控的方向推进，优化环境呈现，提升空间的实际使用活力。" },
+    { id:"SI5", name:"完善人身安全保障", parent:"SR2", desc:"针对步行空间中存在的安全防护不足问题，从完善通行场景下安全配套支持的方向出发，提升步行相关场景的安全保障能力。" },
+  ];
+  const MEASURES = [
+    { id:"SM1", name:"增加照明设施", parent:"SI1", desc:"针对街道确实缺少路灯等必要照明要素的情况，补充符合城市道路照明标准的路灯、庭院灯等设施，确保夜间平均照度均匀、无明显暗区，照明覆盖完整覆盖步行道及临街界面。〔注意〕一般城市道路均有照明设施，部分可能被树木遮挡而不可见，需再三确认确实缺失后再提出；忽略图像拍摄造成的明暗偏差。" },
+    { id:"SM2", name:"管控界面通透性", parent:"SI1", desc:"针对连续零通透实墙界面（长度不宜超过50米）。〔区分〕①施工围挡造成的视线遮蔽—不需通透性调整；②两侧建筑功能为居住或历史建筑—无调整空间（历史建筑仅修缮）；③其他情况可对实墙局部镂空或通透性调整，无调整条件时可材质调整或垂直绿化缓解；沿街栅栏式围墙宜保持一定程度通透性。" },
+    { id:"SM3", name:"优化绿化遮挡", parent:"SI1", desc:"针对人视线高度的高遮挡绿化进行修剪或改造（分段留空/镂空造型/分层配置/局部替换为低生长品种）。〔注意〕高大乔木一般不视为遮挡，仅当绿化在人视线高度遮挡视线或店招时才提出；行道树遮挡视线/店招时修剪。" },
+    { id:"SM4", name:"植入功能或增设开放空间", parent:"SI2", desc:"仅在现状具备场地条件时提出：增加社区便民服务型微业态（小型便民超市、社区服务站等）或小型开放空间（窄幅步行休憩带、微型防护绿地、小型休憩空间），配套监控点位、应急照明、安全指引标识。若两侧为旧改或围挡背后空间可视为可改造；无可用场地时不强行推进。" },
+    { id:"SM5", name:"修缮沿街破旧建筑", parent:"SI3", desc:"对沿街破旧建筑开展外立面翻新：修补剥落墙体、填补裂缝，统一更换老化破损门窗（材质色彩与周边协调），屋顶清理移除杂物废弃建材、修复防水层。〔注意〕外观陈旧但质量较好的建筑不属于此项；历史建筑仅按保护要求修缮，不改变原有风貌。" },
+    { id:"SM6", name:"整治街道杂乱问题", parent:"SI3", desc:"规范沿街管线，对架空线采用入地铺设或整理成束、套管包裹方式处理，消除视觉杂乱（管线整理需符合电力、通信等行业规范）。〔注意〕整齐的架空电线或常规电线杆不属于杂乱问题。" },
+    { id:"SM7", name:"修复损坏设施", parent:"SI3", desc:"对破损的步道砖、路缘石及时更换（材质与原有设施一致），对断裂的步行护栏、锈蚀的休憩座椅进行焊接修补或整体更换，确保设施功能完好、无安全隐患。" },
+    { id:"SM8", name:"垃圾源头管控与宣传劝导", parent:"SI4", desc:"加强垃圾源头管控：在沿街商铺、居民小区门口张贴宣传海报、社区微信群推送科普、网格员上门劝导，宣传垃圾分类与规范投放；重点时段（早餐、夜间用餐）安排志愿者/城管巡逻劝导，对乱扔垃圾、乱倒污水及时制止。" },
+    { id:"SM9", name:"激活废弃空间", parent:"SI4", desc:"仅针对独立出现的废弃空间（非街道整体空置）：将街道旁闲置空地、废弃商铺结合居民需求改造为口袋公园、便民服务点、社区共享菜园、临时停车场等实用场景，完善配套设施，安排专人管理维护。" },
+    { id:"SM10", name:"推进旧改项目实施", parent:"SI4", desc:"针对街道整体空置或封闭（沿街界面整体为实体封闭，疑似已列为旧改项目，一般为里弄住宅）。提出积极推动旧改项目实施，加快拆迁、规划设计与重建进度，同步完善周边基础设施与公共服务设施。〔注意〕需确认确实为旧改项目，单纯老旧建筑封闭不属此情况。" },
+    { id:"SM11", name:"增加施工安全防护", parent:"SI5", desc:"针对施工或其他行为直接外露在步行通行空间、且防护措施简陋的情况，按《建设工程文明施工管理规定》提出：围挡（硬质材料、基础牢固、高度≥2米）、密目式安全网/脚手架警示漆、外立面紧邻道路时搭建安全天棚及警示引导标志等。〔注意〕已有规范围挡/围墙有效隔离步行空间的施工不属于防护较差，不重复提出；能看到工程结构与施工立面属正常。" },
+  ];
   // 内部知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不在他处重复)
-  const KNOWLEDGE = `<p><strong>层级定义：</strong>${SAFETY_DEF}</p>
-<p><strong>SR1 自然监视不足：</strong>${DIMS[0].desc}</p>
-<p><strong>SR2 环境失序：</strong>${DIMS[1].desc}</p>
+  const CHAIN_KB = DIMS.map(d => {
+    const sis = STRATEGIES.filter(st => st.parent === d.id);
+    return `<div class="kb-sr"><div class="kb-sr-h"><span class="kb-tag">${d.id}</span> ${d.name}</div><div class="kb-desc">${d.desc}</div><div class="kb-chain">` +
+      sis.map(st => {
+        const sms = MEASURES.filter(m => m.parent === st.id);
+        return `<div class="kb-si"><div class="kb-si-h"><span class="kb-tag sub">${st.id}</span> ${st.name}</div><div class="kb-desc">${st.desc}</div>` +
+          (sms.length ? `<div class="kb-sm-list">${sms.map(m => `<div class="kb-sm"><div class="kb-sm-h"><span class="kb-tag sm">${m.id}</span> <b>${m.name}</b></div><div class="kb-desc">${m.desc}</div></div>`).join("")}</div>` : "") +
+          `</div>`;
+      }).join("") + `</div></div>`;
+  }).join("");
+  const KB_RATING_REF = `<p><strong>层级定义：</strong>${SAFETY_DEF}</p>
 <p><strong>评级判断标准：</strong></p><ul style="margin:6px 0 0;padding-left:18px">${RATING_CRITERIA.map(r => `<li><strong>${r.v} ${r.label}：</strong>${r.c}</li>`).join("")}</ul>`;
+  const KB_FULL = KB_RATING_REF + `<div class="kb-title"><i class="fas fa-sitemap"></i> 问题归因 → 优化策略 → 实施举措（完整推理链路与内涵参考）</div>${CHAIN_KB}`;
   const PER_STUDENT = 20;
 
   // ===== 状态 =====
@@ -44,11 +74,26 @@
   function isComplete(r) {
     if (!r || !r.level_rating) return false;
     if (S.mode === "external") {
+      // 对外:无明显问题即完成;否则每个问题须类型+说明齐全,且每个问题须有≥1个完整策略,每个策略须有≥1个完整举措(推理链路完整)
       if (r.no_issue) return true;
       const attrs = r.attributions || [];
-      return attrs.length > 0 && attrs.every(a => (a.type || "").trim() && (a.analysis || "").trim());
+      if (!attrs.length || !attrs.every(a => (a.type || "").trim() && (a.analysis || "").trim())) return false;
+      return attrs.every(a => {
+        const sts = (a.strategies || []).filter(st => (st.direction || "").trim() && (st.reason || "").trim());
+        if (!sts.length) return false;
+        return sts.every(st => (st.measures || []).some(m => (m.action || "").trim() && (m.detail || "").trim()));
+      });
     }
-    return !!(r.sr1_rating && r.sr2_rating && r.issue_selection && r.issue_selection.length);
+    // 对内:评级+归因齐全;若选了问题归因(SR)则每个SR须有≥1对应优化策略(SI),每个SI须有≥1对应实施举措(SM);无明显问题则直接完成
+    if (!(r.sr1_rating && r.sr2_rating && r.issue_selection && r.issue_selection.length)) return false;
+    const iss = r.issue_selection || [];
+    if (iss.includes("no_issue")) return true;
+    const srs = iss.filter(x => x !== "no_issue");
+    if (!srs.length) return false;
+    const sels = r.strategy_selection || [], msels = r.measure_selection || [];
+    for (const sr of srs) { if (!STRATEGIES.some(st => st.parent === sr && sels.includes(st.id))) return false; }
+    for (const si of sels) { if (!MEASURES.some(m => m.parent === si && msels.includes(m.id))) return false; }
+    return true;
   }
 
   // ===== 落地页:编号输入(不暴露分组) =====
@@ -115,6 +160,30 @@
   }
 
   // ===== 评价页 =====
+  function setKbOpen(open) {
+    const dr = document.getElementById("kbDrawer");
+    if (dr) dr.classList.toggle("open", open);
+    document.body.classList.toggle("kb-open", open);
+  }
+  function ensureKbDrawer() {
+    const show = S.mode === "internal";
+    let btn = document.getElementById("kbToggle"), dr = document.getElementById("kbDrawer");
+    if (!show) { if (btn) btn.style.display = "none"; setKbOpen(false); return; }
+    if (!btn) {
+      btn = document.createElement("button"); btn.id = "kbToggle"; btn.className = "kb-toggle";
+      btn.innerHTML = '<i class="fas fa-book-open"></i><span>知识库</span>';
+      btn.onclick = () => setKbOpen(!document.getElementById("kbDrawer").classList.contains("open"));
+      document.body.appendChild(btn);
+    }
+    btn.style.display = "";
+    if (!dr) {
+      dr = document.createElement("div"); dr.id = "kbDrawer"; dr.className = "kb-drawer";
+      dr.innerHTML = '<div class="kb-drawer-h"><span class="kb-drawer-title"><i class="fas fa-book-open"></i> 知识库 · 完整参考</span><button type="button" class="kb-drawer-close"><i class="fas fa-times"></i> 收起</button></div><div class="kb-drawer-body"></div>';
+      dr.querySelector(".kb-drawer-close").onclick = () => setKbOpen(false);
+      document.body.appendChild(dr);
+    }
+    dr.querySelector(".kb-drawer-body").innerHTML = KB_FULL;
+  }
   function renderEval(preserveScroll) {
     const _ps = preserveScroll ? ((document.getElementById("panelPane") || {}).scrollTop || 0) : 0;
     const cur = S.images[S.currentIndex];
@@ -178,6 +247,7 @@
         </main>
       </div>`;
     bindPanel(cur);
+    ensureKbDrawer();
     document.getElementById("guideBtn").addEventListener("click", startTour);
     document.getElementById("exportBtn").addEventListener("click", openExport);
     document.getElementById("exitBtn").addEventListener("click", () => { if (confirm("退出将返回编号输入页(已评分已保存)。确定?")) { S.evaluatorId = null; S.mode = null; renderLanding(); } });
@@ -247,24 +317,19 @@
           </div>
         </div>`;
     } else {
-      // 内部:知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不重复)
-      html += `
-        <div class="rating-section" id="sec-knowledge">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-book"></i> 知识库</div></div>
-          <div class="collapsible">
-            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
-              <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>安全性评价标准（定义·维度含义·评级）</span></div>
-              <i class="fas fa-chevron-down collapsible-arrow"></i>
-            </div>
-            <div class="collapsible-content"><div class="collapsible-inner" style="line-height:1.7">${KNOWLEDGE}</div></div>
-          </div>
-        </div>`;
       // 内部:要素识别结果(模型)
       html += refSection(S.referenceData[img.name] || {});
       // 内部:总体评价(在分维度之前)
       html += `
         <div class="rating-section" id="sec-overall">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
+          <div class="collapsible">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
+              <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>安全性定义与评级标准（点此展开参考）</span></div>
+              <i class="fas fa-chevron-down collapsible-arrow"></i>
+            </div>
+            <div class="collapsible-content"><div class="collapsible-inner" style="line-height:1.7">${KB_RATING_REF}</div></div>
+          </div>
           <div class="rating-question">依据上述安全性定义,对该街道的步行感知安全性作出评价:</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
@@ -290,13 +355,21 @@
           <div class="rating-question">请勾选该街道中明确影响步行安全性的问题维度:</div>
           <div class="section-hint">可多选对应维度;若认为街道安全性较好或问题影响不明显,勾选“无明显问题”。</div>
           <div id="issueList" class="${noIssSel ? "disabled" : ""}">
-            <div class="checkbox-tags">
-              ${DIMS.map(d => `<label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label>`).join("")}
+            <div class="checkbox-tags sr-tags">
+              ${DIMS.map(d => `<div class="chain-row"><label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label><span class="chain-info-btn" data-sr-info="${d.id}"><i class="fas fa-circle-info"></i> 内涵</span></div><div class="chain-info-box" id="sr-info-${d.id}" style="display:none">${d.desc}</div>`).join("")}
             </div>
           </div>
           <div class="noissue-row">
             <div class="noissue-opt ${noIssSel ? "on" : ""} ${anySRSel ? "is-disabled" : ""}" id="internalNoIssue"><i class="fas fa-check-circle"></i> 无明显问题</div>
           </div>
+        </div>`;
+      // 内部:优化策略与实施举措(按已选问题归因分组,层级展开,选父级才展开子级)
+      html += `
+        <div class="rating-section" id="sec-chain">
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-sitemap"></i> 优化策略与实施举措</div></div>
+          <div class="rating-question">按所选问题归因，依次选择对应的优化策略，再选择该策略对应的实施举措：</div>
+          <div class="section-hint">每个问题归因下仅列出其对应的优化策略；每个优化策略下仅列出其对应的实施举措，确保“问题→策略→举措”一一对应。</div>
+          <div id="chainTree"></div>
         </div>`;
     }
     html += `</div>`;
@@ -311,12 +384,44 @@
   }
 
   function attrEntry(i, a, dis) {
+    if (!a.strategies) a.strategies = [];
     return `<div class="attr-entry" data-i="${i}">
-      <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除"><i class="fas fa-times"></i></button></div>
+      <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除问题"><i class="fas fa-times"></i></button></div>
       <div class="attr-label"><span>问题类型</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
       <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="归纳安全性的问题" value="${esc(a.type || "")}" ${dis} />
       <div class="attr-label">解释说明</div>
       <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街道中的空间要素进行相应的陈述和说明" ${dis}>${esc(a.analysis || "")}</textarea>
+      <div class="nest-block">
+        <div class="nest-block-h"><i class="fas fa-compass"></i> 优化策略（针对该问题的优化方向，可填多个）</div>
+        <div class="nest-hint">侧重概括「优化方向」（方向层面）。</div>
+        <div class="strategy-list" data-ai="${i}">${a.strategies.map((st, si) => strategyEntry(i, si, st, dis)).join("")}</div>
+        <button type="button" class="add-nest-btn add-strategy" data-ai="${i}" ${dis}><i class="fas fa-plus"></i> 添加优化策略</button>
+      </div>
+    </div>`;
+  }
+  function strategyEntry(ai, si, st, dis) {
+    if (!st.measures) st.measures = [];
+    return `<div class="strategy-entry" data-ai="${ai}" data-si="${si}">
+      <div class="nest-entry-head"><span class="lbl">优化策略 ${si + 1}</span><button type="button" class="nest-del strategy-del" data-ai="${ai}" data-si="${si}" ${dis} title="删除策略"><i class="fas fa-times"></i></button></div>
+      <div class="attr-label">优化方向（概括该策略的方向）</div>
+      <input class="text-input strat-direction" data-ai="${ai}" data-si="${si}" placeholder="概括优化方向" value="${esc(st.direction || "")}" ${dis} />
+      <div class="attr-label">说明理由（为何选择该优化方向）</div>
+      <textarea class="text-area strat-reason" data-ai="${ai}" data-si="${si}" placeholder="说明选择该优化方向的依据" ${dis}>${esc(st.reason || "")}</textarea>
+      <div class="nest-block nest-deeper">
+        <div class="nest-block-h"><i class="fas fa-tasks"></i> 实施举措（该方向下的具体落地做法，可填多个）</div>
+        <div class="nest-hint">侧重「具体怎么做、在哪做、针对什么」（落地层面）。</div>
+        <div class="measure-list" data-ai="${ai}" data-si="${si}">${st.measures.map((m, mi) => measureEntry(ai, si, mi, m, dis)).join("")}</div>
+        <button type="button" class="add-nest-btn add-measure" data-ai="${ai}" data-si="${si}" ${dis}><i class="fas fa-plus"></i> 添加实施举措</button>
+      </div>
+    </div>`;
+  }
+  function measureEntry(ai, si, mi, m, dis) {
+    return `<div class="measure-entry" data-ai="${ai}" data-si="${si}" data-mi="${mi}">
+      <div class="nest-entry-head"><span class="lbl">举措 ${mi + 1}</span><button type="button" class="nest-del measure-del" data-ai="${ai}" data-si="${si}" data-mi="${mi}" ${dis} title="删除举措"><i class="fas fa-times"></i></button></div>
+      <div class="attr-label">实施举措（概括具体做法）</div>
+      <input class="text-input meas-action" data-ai="${ai}" data-si="${si}" data-mi="${mi}" placeholder="概括具体实施做法" value="${esc(m.action || "")}" ${dis} />
+      <div class="attr-label">说明（结合街景说明可行性、实施位置与针对的空间对象）</div>
+      <textarea class="text-area meas-detail" data-ai="${ai}" data-si="${si}" data-mi="${mi}" placeholder="结合街景图像说明该实施举措的可行性、具体实施位置与针对的空间对象" ${dis}>${esc(m.detail || "")}</textarea>
     </div>`;
   }
 
@@ -417,10 +522,51 @@
       const addBtn = document.getElementById("addAttrBtn");
       if (addBtn) addBtn.addEventListener("click", () => {
         if (r.no_issue) r.no_issue = "";
-        r.attributions.push({ type: "", analysis: "" });
+        r.attributions.push({ type: "", analysis: "", strategies: [] });
         saveStore(); renderAttrList(); updateProgressUI();
       });
       bindAttrInputs();
+      // 嵌套:优化策略/实施举措 输入+增删(委托到attrList,无需重绑)
+      const attrListEl = document.getElementById("attrList");
+      if (attrListEl) {
+        const renderStrategyList = (ai) => {
+          const dis = r.no_issue ? "disabled" : "";
+          const wrap = attrListEl.querySelector('.strategy-list[data-ai="' + ai + '"]');
+          if (wrap) wrap.innerHTML = (r.attributions[ai].strategies || []).map((st, si) => strategyEntry(ai, si, st, dis)).join("");
+        };
+        const renderMeasureList = (ai, si) => {
+          const dis = r.no_issue ? "disabled" : "";
+          const wrap = attrListEl.querySelector('.measure-list[data-ai="' + ai + '"][data-si="' + si + '"]');
+          if (wrap) wrap.innerHTML = ((r.attributions[ai].strategies[si].measures) || []).map((m, mi) => measureEntry(ai, si, mi, m, dis)).join("");
+        };
+        attrListEl.addEventListener("input", e => {
+          const t = e.target; if (!t.classList) return;
+          const ai = t.dataset.ai, si = t.dataset.si, mi = t.dataset.mi;
+          if (ai == null) return;
+          const A = r.attributions[+ai]; if (!A || !A.strategies || A.strategies[+si] == null) return;
+          if (t.classList.contains("strat-direction")) A.strategies[+si].direction = t.value;
+          else if (t.classList.contains("strat-reason")) A.strategies[+si].reason = t.value;
+          else if (A.strategies[+si].measures && A.strategies[+si].measures[+mi] != null) {
+            const M = A.strategies[+si].measures[+mi];
+            if (t.classList.contains("meas-action")) M.action = t.value;
+            else if (t.classList.contains("meas-detail")) M.detail = t.value;
+            else return;
+          } else return;
+          r.timestamp = new Date().toISOString(); saveStore(); updateProgressUI();
+        });
+        attrListEl.addEventListener("click", e => {
+          const b = e.target.closest(".add-strategy,.strategy-del,.add-measure,.measure-del");
+          if (!b) return;
+          const ai = +b.dataset.ai, si = b.dataset.si != null ? +b.dataset.si : null;
+          const A = r.attributions[ai]; if (!A) return;
+          if (b.classList.contains("add-strategy")) { A.strategies = A.strategies || []; A.strategies.push({ direction: "", reason: "", measures: [] }); renderStrategyList(ai); }
+          else if (b.classList.contains("strategy-del")) { A.strategies.splice(si, 1); renderStrategyList(ai); }
+          else if (b.classList.contains("add-measure")) { A.strategies[si].measures = A.strategies[si].measures || []; A.strategies[si].measures.push({ action: "", detail: "" }); renderMeasureList(ai, si); }
+          else if (b.classList.contains("measure-del")) { A.strategies[si].measures.splice(+b.dataset.mi, 1); renderMeasureList(ai, si); }
+          else return;
+          saveStore(); updateProgressUI();
+        });
+      }
 
       // 轻微/无明显:就地切换+锁定归因(只重渲染归因列表,不动整体面板)
       app.querySelectorAll(".noissue-opt").forEach(o => {
@@ -441,6 +587,64 @@
     } else {
       // 内部归因:SR1/SR2 多选 + 无明显问题(互斥锁定,就地更新)
       const r = rec();
+      // 优化策略与实施举措:按已选问题归因分组、层级展开(选父级才展开子级,保证链条对应)
+      const renderChain = () => {
+        const iss = r.issue_selection || [];
+        const noIss = iss.includes("no_issue");
+        const srSel = iss.filter(x => x !== "no_issue");
+        // 级联校验:SI必须属于已选SR,SM必须属于已选SI
+        let si = (r.strategy_selection || []).filter(id => STRATEGIES.some(st => st.id === id && srSel.includes(st.parent)));
+        if (si.length !== (r.strategy_selection || []).length) r.strategy_selection = si;
+        let sm = (r.measure_selection || []).filter(id => MEASURES.some(m => m.id === id && si.includes(m.parent)));
+        if (sm.length !== (r.measure_selection || []).length) r.measure_selection = sm;
+        const infoOpen = r.chain_info_open || [];
+        const wrap = document.getElementById("chainTree"); if (!wrap) return;
+        if (noIss) { wrap.innerHTML = '<div class="section-hint">无明显问题，无需选择。</div>'; return; }
+        if (!srSel.length) { wrap.innerHTML = '<div class="section-hint">请先在上方勾选问题归因，其对应的优化策略与实施举措将依次展开。</div>'; return; }
+        let h = "";
+        DIMS.forEach(d => {
+          if (!iss.includes(d.id)) return;
+          h += `<div class="chain-sr"><div class="chain-sr-h"><span class="chip-sr">${d.id} ${d.name}</span><span class="chain-arrow">对应优化策略</span></div><div class="chain-body">`;
+          const sis = STRATEGIES.filter(s => s.parent === d.id);
+          if (!sis.length) h += '<div class="section-hint">无</div>';
+          sis.forEach(s => {
+            const on = si.includes(s.id);
+            const siInfo = infoOpen.includes("si-" + s.id);
+            h += `<div class="chain-si ${on ? "open" : ""}"><div class="chain-row"><label class="checkbox-tag ${on ? "checked" : ""}" data-chain="si" data-id="${s.id}"><i class="fas fa-check"></i> ${s.id} ${s.name}</label><span class="chain-info-btn ${siInfo ? "on" : ""}" data-info="si-${s.id}"><i class="fas fa-circle-info"></i> 内涵</span></div>`;
+            if (siInfo) h += `<div class="chain-info-box"><b>策略内涵：</b>${s.desc}</div>`;
+            if (on) {
+              const sms = MEASURES.filter(m => m.parent === s.id);
+              if (sms.length) h += '<div class="chain-sm">' + sms.map(m => {
+                const mInfo = infoOpen.includes("sm-" + m.id);
+                return `<div class="chain-sm-item"><div class="chain-row"><label class="checkbox-tag ${sm.includes(m.id) ? "checked" : ""}" data-chain="sm" data-id="${m.id}"><i class="fas fa-check"></i> ${m.id} ${m.name}</label><span class="chain-info-btn ${mInfo ? "on" : ""}" data-info="sm-${m.id}"><i class="fas fa-circle-info"></i> 内涵</span></div>${mInfo ? `<div class="chain-info-box"><b>举措内涵：</b>${m.desc}</div>` : ""}</div>`;
+              }).join("") + '</div>';
+            }
+            h += "</div>";
+          });
+          h += "</div></div>";
+        });
+        wrap.innerHTML = h;
+      };
+      const tree = document.getElementById("chainTree");
+      if (tree) tree.addEventListener("click", e => {
+        const iBtn = e.target.closest("[data-info]");
+        if (iBtn) {
+          const key = iBtn.dataset.info;
+          r.chain_info_open = r.chain_info_open || [];
+          if (r.chain_info_open.includes(key)) r.chain_info_open = r.chain_info_open.filter(x => x !== key);
+          else r.chain_info_open.push(key);
+          r.timestamp = new Date().toISOString(); saveStore(); renderChain();
+          return;
+        }
+        const tag = e.target.closest("[data-chain]"); if (!tag) return;
+        const field = tag.dataset.chain === "si" ? "strategy_selection" : "measure_selection";
+        r[field] = r[field] || [];
+        const id = tag.dataset.id;
+        if (r[field].includes(id)) r[field] = r[field].filter(x => x !== id);
+        else r[field].push(id);
+        r.timestamp = new Date().toISOString(); saveStore(); updateProgressUI(); renderChain();
+      });
+      renderChain();
       const updateIssueUI = () => {
         const iss = r.issue_selection || [];
         const noIss = iss.includes("no_issue");
@@ -451,6 +655,15 @@
         const ni = document.getElementById("internalNoIssue");
         if (ni) { ni.classList.toggle("on", noIss); ni.classList.toggle("is-disabled", anySR); }
       };
+      const issListEl = document.getElementById("issueList");
+      if (issListEl) issListEl.addEventListener("click", e => {
+        const ib = e.target.closest("[data-sr-info]"); if (!ib) return;
+        const box = document.getElementById("sr-info-" + ib.dataset.srInfo);
+        if (!box) return;
+        const open = box.style.display !== "none";
+        box.style.display = open ? "none" : "block";
+        ib.classList.toggle("on", !open);
+      });
       app.querySelectorAll("#issueList .checkbox-tag").forEach(t => {
         t.addEventListener("click", () => {
           r.issue_selection = (r.issue_selection || []).filter(x => x !== "no_issue");
@@ -458,7 +671,7 @@
           if (r.issue_selection.includes(id)) r.issue_selection = r.issue_selection.filter(x => x !== id);
           else r.issue_selection.push(id);
           r.timestamp = new Date().toISOString();
-          saveStore(); updateIssueUI(); updateProgressUI();
+          saveStore(); updateIssueUI(); updateProgressUI(); renderChain();
         });
       });
       const niBtn = document.getElementById("internalNoIssue");
@@ -466,7 +679,7 @@
         const noIss = (r.issue_selection || []).includes("no_issue");
         r.issue_selection = noIss ? [] : ["no_issue"];
         r.timestamp = new Date().toISOString();
-        saveStore(); updateIssueUI(); updateProgressUI();
+        saveStore(); updateIssueUI(); updateProgressUI(); renderChain();
       });
     }
   }
@@ -484,21 +697,22 @@
     const steps = (S.mode === "external" ? [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
       { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-attr", t: "问题归因", c: "点“添加一个问题类型”填写影响步行感知安全性的问题类型(≤10字)与分析(可添加多个,需结合街景图像空间要素);若认为安全性较好或问题影响不明显,勾选下方“无明显问题”(可附说明)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因与对策", c: "点“添加一个问题类型”填写影响安全性的问题类型(≤10字)与分析(结合街景空间要素)。在每个问题下,可进一步填写“优化策略”(概括优化方向+理由,可多个),并在每个策略下填写“实施举措”(具体做法+可行性+位置+针对的空间对象,可多个)。若安全性较好或问题不明显,勾选“无明显问题”。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
-      { sel: "#sec-knowledge", t: "知识库", c: "展开可查看安全性定义、SR1/SR2 维度含义与评级判断标准。", p: "left" },
+      { sel: "#sec-overall", t: "定义与评级参考", c: "总体评价区可展开「安全性定义与评级标准」;右下角「知识库」按钮可打开完整参考(问题→策略→举措全内涵),独立滚动浏览。", p: "left" },
       { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
       { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
       { sel: "#sec-dims", t: "分维度评价", c: "为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。", p: "left" },
-      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”。", p: "left" },
+      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”。每个维度旁可点“ⓘ 内涵”查看参考。", p: "left" },
+      { sel: "#sec-chain", t: "优化策略与实施举措", c: "按已选问题归因,依次选择对应的优化策略(每个可点“ⓘ 内涵”查看参考);选择策略后,其下展开对应的实施举措供选择。保证问题→策略→举措一一对应。", p: "left" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));
     if (!steps.length) return;
-    const intro = { sel: null, t: "评价概览", c: "本次评价共 20 张街景图像。每张需完成两步:① 依据安全性定义进行安全性评级;② 列出对步行感知安全性有明确负面影响的问题,或选择“无明显问题”。下面逐一介绍各功能区域。", p: "center" };
+    const intro = { sel: null, t: "评价概览", c: "本次评价共 20 张街景图像。每张需完成:① 依据安全性定义进行安全性评级;② 诊断影响步行安全性的问题(或勾选“无明显问题”);③ 针对问题提出/选择优化策略与实施举措。下面逐一介绍各功能区域。", p: "center" };
     _tour = { steps: [intro, ...steps], i: 0 };
     showTourStep();
     window.addEventListener("resize", reposTour);
@@ -622,6 +836,8 @@
         base["SR2评级"] = r.sr2_rating ? SCALE[r.sr2_rating] : "";
         base["归因维度"] = iss.map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name).filter(Boolean).join("、");
         base["无明显问题"] = iss.includes("no_issue") ? "是" : "";
+        base["优化策略"] = (r.strategy_selection || []).map(id => (STRATEGIES.find(st => st.id === id) || {}).name).filter(Boolean).join("、");
+        base["实施举措"] = (r.measure_selection || []).map(id => (MEASURES.find(m => m.id === id) || {}).name).filter(Boolean).join("、");
       }
       base["提交时间"] = r.timestamp || "";
       return base;
@@ -656,6 +872,34 @@
     return out;
   }
 
+  function chainRecords() {
+    const out = [];
+    if (S.mode !== "external") return out;
+    S.images.forEach((im, idx) => {
+      const r = S.ratings[im.name] || {};
+      if (r.no_issue) return;
+      const ctx = { "评价者编号": S.evaluatorId, "图像序号": idx + 1, "图像文件名": im.name, "街景点位pid": pidOf(im.name), "安全性评级": r.level_rating ? SCALE[r.level_rating] : "" };
+      let pseq = 0;
+      (r.attributions || []).forEach(a => {
+        if (!(a.type || "").trim()) return;
+        pseq++;
+        let sseq = 0;
+        const sts = a.strategies || [];
+        if (!sts.length) return;
+        sts.forEach(st => {
+          sseq++;
+          const ms = st.measures || [];
+          if (!ms.length) {
+            out.push({ ...ctx, "问题序号": pseq, "问题类型": a.type, "策略序号": sseq, "优化方向": st.direction || "", "策略理由": st.reason || "", "举措序号": "", "实施举措": "", "实施可行性": "", "具体位置": "", "结合空间对象": "" });
+          } else {
+            let mseq = 0;
+            ms.forEach(m => { mseq++; out.push({ ...ctx, "问题序号": pseq, "问题类型": a.type, "策略序号": sseq, "优化方向": st.direction || "", "策略理由": st.reason || "", "举措序号": mseq, "实施举措": m.action || "", "实施说明": m.detail || "" }); });
+          }
+        });
+      });
+    });
+    return out;
+  }
   function exportExcel() {
     const wb = XLSX.utils.book_new();
     const ws1 = XLSX.utils.json_to_sheet(summaryRecords());
@@ -665,6 +909,13 @@
       ? XLSX.utils.json_to_sheet(probs)
       : XLSX.utils.aoa_to_sheet([["评价者编号", "图像序号", "图像文件名", "街景点位pid", "安全性评级", "问题序号", "问题类型", "解释说明"]]);
     XLSX.utils.book_append_sheet(wb, ws2, "问题明细");
+    if (S.mode === "external") {
+      const chain = chainRecords();
+      const ws3 = chain.length
+        ? XLSX.utils.json_to_sheet(chain)
+        : XLSX.utils.aoa_to_sheet([["评价者编号","图像序号","图像文件名","街景点位pid","安全性评级","问题序号","问题类型","策略序号","优化方向","策略理由","举措序号","实施举措","实施说明"]]);
+      XLSX.utils.book_append_sheet(wb, ws3, "策略举措明细");
+    }
     XLSX.writeFile(wb, `安全性评价_评价者${String(S.evaluatorId).padStart(2, "0")}.xlsx`);
     toast("Excel 已导出(评分总表 + 问题明细)");
   }
