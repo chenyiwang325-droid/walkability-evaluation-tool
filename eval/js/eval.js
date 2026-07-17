@@ -709,7 +709,7 @@
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
-      { sel: "#kbToggle", t: "知识库", c: "点击右下角「知识库」按钮，打开完整知识库侧栏：包含安全性定义、评级标准，以及问题归因→优化策略→实施举措的完整推理链路与每项内涵。侧栏可独立滚动浏览，评价过程中随时查阅、随时关闭。", p: "left" },
+      { sel: "#kbToggle", t: "知识库", c: "点击右下角「知识库」按钮，打开完整知识库侧栏：包含安全性定义、评级标准，以及问题归因→优化策略→实施举措的完整推理链路与每项内涵。侧栏可独立滚动浏览，评价过程中随时查阅、随时关闭。", p: "top" },
       { sel: "#sec-overall", t: "安全性定义与评级", c: "展开「安全性定义与评级标准」可查看评价依据；依据定义，选择该街道安全性的总体评级（1 很差 ~ 5 很好）。", p: "left" },
       { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
       { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
@@ -782,8 +782,9 @@
     else if (place === "right") { left = rect.right + m; top = rect.top; }
     else if (place === "top") { left = rect.left + rect.width / 2 - tw / 2; top = rect.top - tip.offsetHeight - m; }
     else { left = rect.left + rect.width / 2 - tw / 2; top = rect.bottom + m; }
+    const th = tip.offsetHeight || 220;
     left = Math.max(m, Math.min(left, window.innerWidth - tw - m));
-    top = Math.max(m, Math.min(top, window.innerHeight - 150));
+    top = Math.max(m, Math.min(top, window.innerHeight - th - m));
     tip.style.left = left + "px"; tip.style.top = top + "px"; tip.style.width = tw + "px";
   }
   function endTour() {
