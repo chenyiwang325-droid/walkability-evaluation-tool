@@ -423,7 +423,7 @@
     if (!rec || !(rec.images || []).length) {
       return `<div class="board-scroll view-fade"><div class="hist-loading">未找到你的历史评价记录。</div></div>`;
     }
-    const note = `<div class="hist-note"><b>历史参照说明：</b>以下为你在此前两轮评价中的选择记录，供本次评价对齐参考。<b>诊断评级</b>与<b>问题归因</b>来自 2025-12 轮（问题原因评价补充）；<b>优化策略</b>与<b>实施举措</b>由 2025-11 轮（模型与专家一致性）的选择按现行口径映射（当时的「问题影响判断」→ 现在的优化策略，当时的「优化方向」→ 现在的实施举措）。历史图像为当时评价的 52 张街景，与本次评价图像不同。</div>`;
+    const note = `<div class="hist-note"><b>历史参照说明：</b>以下为你在此前两轮评价中的选择记录（已按现行口径整理），供本次评价对齐参考。<b>诊断评级</b>与<b>问题归因</b>来自 2025-12 轮（问题原因评价补充）；<b>优化策略</b>与<b>实施举措</b>来自 2025-11 轮（模型与专家一致性）。历史图像为当时评价的 52 张街景，与本次评价图像不同。</div>`;
     const cards = rec.images.map((im, i) => historyCard(im, i)).join("");
     return `<div class="board-scroll view-fade">${note}<div class="board-grid" id="histGrid">${cards}</div></div>`;
   }
@@ -442,18 +442,20 @@
       body += chipGroup("问题归因（当时选择）", "fa-tags", chips);
     }
     if (im.strategies) {
-      const inner = im.strategies.length
-        ? `<div class="map-list">${im.strategies.map(m => `<div class="map-row"><span class="map-old">${esc(m.old)}</span><span class="map-arrow"><i class="fas fa-arrow-right"></i></span><span class="map-new strategy">${esc(m.new)}</span></div>`).join("")}</div>`
+      const vals = im.strategies.map(m => m.new).filter(Boolean);
+      const inner = vals.length
+        ? vals.map(v => `<span class="tag-chip strategy">${esc(v)}</span>`).join("")
         : (im.no_issue_1110 ? '<span class="tag-chip noissue"><i class="fas fa-check-circle"></i> 无明显问题</span>' : EMPTY_CHIP("未选择"));
-      body += chipGroup("优化策略（当时选择 → 现行映射）", "fa-compass", inner);
+      body += chipGroup("优化策略（当时选择）", "fa-compass", inner);
     }
     if (im.measures) {
-      const inner = im.measures.length
-        ? `<div class="map-list">${im.measures.map(m => m.new
-            ? `<div class="map-row"><span class="map-old">${esc(m.old)}</span><span class="map-arrow"><i class="fas fa-arrow-right"></i></span><span class="map-new measure">${esc(m.new)}</span></div>`
-            : `<div class="map-row"><span class="map-old">其他（当时另填）</span></div>`).join("")}</div>`
-        : EMPTY_CHIP("未选择");
-      body += chipGroup("实施举措（当时选择 → 现行映射）", "fa-tasks", inner);
+      const chips = [];
+      im.measures.forEach(m => {
+        if (m.new) chips.push(`<span class="tag-chip measure">${esc(m.new)}</span>`);
+        else chips.push(`<span class="tag-chip">其他（当时另填）</span>`);
+      });
+      const inner = chips.length ? chips.join("") : EMPTY_CHIP("未选择");
+      body += chipGroup("实施举措（当时选择）", "fa-tasks", inner);
     }
     if ((im.rounds || []).length === 1) body += `<div class="hist-partial"><i class="fas fa-circle-info"></i> 该图仅有 ${im.rounds[0]} 轮记录</div>`;
     const t = im.texts || {};
@@ -966,7 +968,7 @@
       { sel: "#sec-dims", t: "分项诊断评级", c: "依据各自含义,为 SR1 自然监视不足、SR2 环境失序 分别作出 1-5 诊断评级。", p: "left" },
       { sel: "#sec-issues", t: "问题归因", c: "问题归因关注“原因”:勾选造成安全性问题的原因(可多选),或勾选“无明显问题”。每项旁可点“ⓘ 内涵”查看参考。", p: "left" },
       { sel: "#sec-chain", t: "优化策略与实施举措", c: "优化策略关注“策略方向”,实施举措关注“实施参考”:按已选归因,依次选择对应的优化策略(每个可点“ⓘ 内涵”查看参考);选择策略后,其下展开对应的实施举措供选择。保证归因→策略→举措一一对应。", p: "left" },
-      { sel: "#viewSwitcher", t: "画册视图与历史参照", c: "「画册视图」总览全部图像已填的标签,便于完成后对照检查;「历史参照」展示你在此前两轮评价中的选择记录及现行口径映射,便于对齐本次评价。", p: "bottom" },
+      { sel: "#viewSwitcher", t: "画册视图与历史参照", c: "「画册视图」总览全部图像已填的标签,便于完成后对照检查;「历史参照」展示你在此前两轮评价中的选择记录(已按现行口径整理),便于对齐本次评价。", p: "bottom" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));

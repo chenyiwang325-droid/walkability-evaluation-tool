@@ -1049,13 +1049,6 @@ body.kb-open .app-container{margin-right:400px;transition:margin-right .28s cubi
   padding: 10px 14px; font-size: 12.5px; line-height: 1.7; color: #3a3530;
 }
 .hist-note b { color: #243447; }
-.map-list { display: flex; flex-direction: column; gap: 3px; }
-.map-row { display: flex; align-items: baseline; gap: 6px; font-size: 12px; line-height: 1.5; }
-.map-old { color: var(--gray-500); }
-.map-arrow { color: var(--gray-300); flex-shrink: 0; }
-.map-new { font-weight: 600; }
-.map-new.strategy { color: #3a5a78; }
-.map-new.measure { color: #6b5a3a; }
 .hist-rounds { display: flex; gap: 4px; }
 .round-badge {
   font-size: 10.5px; font-weight: 600; font-family: var(--font-mono);
