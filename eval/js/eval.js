@@ -2,6 +2,7 @@
  * 街道安全性专家评价 · /eval/ 主逻辑
  * 单链接、ID 驱动。编号决定评价页面与分配图像(对评价者不暴露分组标签)。
  * 纯前端,localStorage 存储,SheetJS 导出。复用原工具样式结构。
+ * 2026-07 改版:新增「画册视图」标签总览(通用)与「历史参照」(对内),四类题项措辞规范化。
  */
 (function () {
   "use strict";
@@ -13,6 +14,7 @@
     { id: "SR2", name: "环境失序", desc: "环境失序主要关注街道步行环境中物理环境的紊乱和不规范状态。环境失序是影响街道安全性的原因之一，具体表现为街道物理环境、人员活动秩序及安全防护措施存在负面状态——如物理层面存在破败待修缮的建筑、增加杂乱度的街道要素、正常使用下的设施损坏等情况，人员活动相关层面存在废弃空间、较多垃圾、人为导致的设施损坏等问题，安全防护层面则有部分直接占用人行通道的施工行为缺乏完善防护设施。这些状态共同作用，既让步行者感知到空间环境的恶化与社会秩序的失序，加重对犯罪威胁的担忧，又无法充分保障行人通行的实际安全（需注意：外观陈旧但质量较好的建筑、整齐的架空电线或常规电线杆不属于此类问题；施工已设置规范围挡或隔离措施的也不属此情况）。" },
   ];
   const SCALE = { 1: "很差", 2: "较差", 3: "一般", 4: "较好", 5: "很好" };
+  const RATE_CLS = { "很差": 1, "较差": 2, "一般": 3, "较好": 4, "很好": 5 };
   // 安全性评级判断标准(来自评分标准,仅内部知识库显示,不对外部暴露)
   const RATING_CRITERIA = [
     { v: 1, label: "很差", c: "自然监视严重缺失（完全封闭、无照明、无活动），环境严重失序（破败、垃圾、危险施工）" },
@@ -42,7 +44,7 @@
     { id:"SM10", name:"推进旧改项目实施", parent:"SI4", desc:"针对街道整体空置或封闭（沿街界面整体为实体封闭，疑似已列为旧改项目，一般为里弄住宅）。提出积极推动旧改项目实施，加快拆迁、规划设计与重建进度，同步完善周边基础设施与公共服务设施。〔注意〕需确认确实为旧改项目，单纯老旧建筑封闭不属此情况。" },
     { id:"SM11", name:"增加施工安全防护", parent:"SI5", desc:"针对施工或其他行为直接外露在步行通行空间、且防护措施简陋的情况，按《建设工程文明施工管理规定》提出：围挡（硬质材料、基础牢固、高度≥2米）、密目式安全网/脚手架警示漆、外立面紧邻道路时搭建安全天棚及警示引导标志等。〔注意〕已有规范围挡/围墙有效隔离步行空间的施工不属于防护较差，不重复提出；能看到工程结构与施工立面属正常。" },
   ];
-  // 内部知识库(定义+SR1/SR2维度含义+评级标准,单一来源,不在他处重复)
+  // 内部知识库(定义+SR1/SR2含义+评级标准,单一来源,不在他处重复)
   const CHAIN_KB = DIMS.map(d => {
     const sis = STRATEGIES.filter(st => st.parent === d.id);
     return `<div class="kb-sr"><div class="kb-sr-h"><span class="kb-tag">${d.id}</span> ${d.name}</div><div class="kb-desc">${d.desc}</div><div class="kb-chain">` +
@@ -59,7 +61,7 @@
   const PER_STUDENT = 20;
 
   // ===== 状态 =====
-  const S = { evaluatorId: null, mode: null, images: [], currentIndex: 0, ratings: {}, referenceData: {}, manifest: null };
+  const S = { evaluatorId: null, mode: null, images: [], currentIndex: 0, ratings: {}, referenceData: {}, manifest: null, view: "single", historyData: null, _histLoading: false };
   const app = document.getElementById("app");
 
   // ===== 工具 =====
@@ -74,7 +76,7 @@
   function isComplete(r) {
     if (!r || !r.level_rating) return false;
     if (S.mode === "external") {
-      // 对外:无明显问题即完成;否则每个问题须类型+说明齐全,且每个问题须有≥1个完整策略,每个策略须有≥1个完整举措(推理链路完整)
+      // 对外:无明显问题即完成;否则每个归因须名称+分析齐全,且每个归因须有≥1个完整策略,每个策略须有≥1个完整举措(推理链路完整)
       if (r.no_issue) return true;
       const attrs = r.attributions || [];
       if (!attrs.length || !attrs.every(a => (a.type || "").trim() && (a.analysis || "").trim())) return false;
@@ -105,10 +107,10 @@
           <h1 class="landing-title">街道步行感知安全性评价</h1>
           <p class="landing-purpose">本评价旨在收集您对街道步行感知安全性的专业判断。您将查看若干街景图像，依次完成以下评价内容：</p>
           <div class="landing-steps">
-            <div class="landing-step"><span class="step-no">①</span> 依据安全性定义，对每张街景图像的步行安全性进行评级（1 很差 ~ 5 很好）</div>
-            <div class="landing-step"><span class="step-no">②</span> 诊断影响步行安全性的问题，说明问题类型与分析依据</div>
-            <div class="landing-step"><span class="step-no">③</span> 针对诊断出的问题，提出相应的优化策略（方向与理由）</div>
-            <div class="landing-step"><span class="step-no">④</span> 针对所提出的优化策略，给出具体的实施举措（做法与说明）</div>
+            <div class="landing-step"><span class="step-no">①</span> 依据安全性定义，对每张街景图像的步行感知安全性作出诊断评级（1 很差 ~ 5 很好）</div>
+            <div class="landing-step"><span class="step-no">②</span> 分析步行感知安全性存在问题的原因（问题归因），并结合街景空间要素说明依据</div>
+            <div class="landing-step"><span class="step-no">③</span> 针对问题归因，提出相应的优化策略（策略方向与理由）</div>
+            <div class="landing-step"><span class="step-no">④</span> 针对所提出的优化策略，给出具体的实施举措（做法与实施说明）</div>
           </div>
           <p class="landing-note">若认为街道安全性良好、无明显问题，可直接选择"无明显问题"完成该图。</p>
           <p class="landing-sub">请输入分配给您的评价者编号，进入评价。</p>
@@ -152,6 +154,7 @@
     const store = loadStore();
     S.ratings = (store && store.ratings) || {};
     S.currentIndex = 0;
+    S.view = "single";
     renderEval();
     // 首次进入该模式自动弹出使用指引(之后可点顶部"指引"按钮再看)
     if (!localStorage.getItem("eval_guide_seen_" + S.mode)) {
@@ -192,12 +195,44 @@
     dr.querySelector(".kb-drawer-body").innerHTML = KB_FULL;
   }
   function renderEval(preserveScroll) {
+    closeHistModal();
     const _ps = preserveScroll ? ((document.getElementById("panelPane") || {}).scrollTop || 0) : 0;
     const cur = S.images[S.currentIndex];
     const done = S.images.filter(im => isComplete(S.ratings[im.name])).length;
     const pct = Math.round(done / S.images.length * 100);
     const allDone = done === S.images.length;
     const idStr = String(S.evaluatorId).padStart(2, "0");
+    const tabs = [
+      { v: "single", icon: "fa-edit", label: "逐张评价" },
+      { v: "album", icon: "fa-images", label: "画册视图" },
+    ];
+    if (S.mode === "internal") tabs.push({ v: "history", icon: "fa-history", label: "历史参照" });
+    let bodyHtml;
+    if (S.view === "album") {
+      bodyHtml = renderAlbum();
+    } else if (S.view === "history") {
+      bodyHtml = renderHistory();
+    } else {
+      bodyHtml = `
+          <div class="single-view rate-mode" style="height:calc(100vh - 60px);padding:16px">
+            <div class="single-view-left">
+              <div class="image-viewer">
+                <div class="image-viewer-header">
+                  <div class="image-viewer-title"><i class="fas fa-image"></i> 街景图像 · pid ${pidOf(cur.name)}</div>
+                </div>
+                <div class="image-container"><img src="${cur.url}" alt="${cur.name}" /></div>
+                <div class="image-nav">
+                  <div class="image-nav-info"><i class="fas fa-map-marker-alt"></i> ${S.currentIndex + 1} / ${S.images.length}</div>
+                  <div class="image-nav-controls">
+                    <button class="nav-btn" id="prevBtn" ${S.currentIndex === 0 ? "disabled" : ""}><i class="fas fa-chevron-left"></i></button>
+                    <button class="nav-btn" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="single-view-right" id="panelPane">${renderPanel(cur)}</div>
+          </div>`;
+    }
     app.innerHTML = `
       <div class="app-container">
         <header class="eval-header">
@@ -205,6 +240,9 @@
             <div class="eval-header-title"><i class="fas fa-shield-alt"></i><h1>街道安全性评价</h1></div>
             <span class="eval-id-chip">评价者 ${idStr}</span>
             ${allDone ? '<span class="eval-done-chip"><i class="fas fa-check"></i> 已完成</span>' : ''}
+            <div class="view-switcher eval-view-switcher" id="viewSwitcher">
+              ${tabs.map(t => `<button class="view-btn ${S.view === t.v ? "active" : ""}" data-view="${t.v}"><i class="fas ${t.icon}"></i> ${t.label}</button>`).join("")}
+            </div>
             <div class="eval-spacer"></div>
             <div class="eval-progress">
               <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
@@ -232,34 +270,44 @@
             <button class="btn btn-secondary" id="exitBtn" title="退出"><i class="fas fa-sign-out-alt"></i></button>
           </div>
         </header>
-        <main class="main-content" style="padding:0">
-          <div class="single-view rate-mode" style="height:calc(100vh - 60px);padding:16px">
-            <div class="single-view-left">
-              <div class="image-viewer">
-                <div class="image-viewer-header">
-                  <div class="image-viewer-title"><i class="fas fa-image"></i> 街景图像 · pid ${pidOf(cur.name)}</div>
-                </div>
-                <div class="image-container"><img src="${cur.url}" alt="${cur.name}" /></div>
-                <div class="image-nav">
-                  <div class="image-nav-info"><i class="fas fa-map-marker-alt"></i> ${S.currentIndex + 1} / ${S.images.length}</div>
-                  <div class="image-nav-controls">
-                    <button class="nav-btn" id="prevBtn" ${S.currentIndex === 0 ? "disabled" : ""}><i class="fas fa-chevron-left"></i></button>
-                    <button class="nav-btn" id="nextBtn"><i class="fas fa-chevron-right"></i></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="single-view-right" id="panelPane">${renderPanel(cur)}</div>
-          </div>
-        </main>
+        <main class="main-content" style="padding:0">${bodyHtml}</main>
       </div>`;
-    bindPanel(cur);
+    // 视图切换 tab(header 内)
+    app.querySelectorAll("#viewSwitcher .view-btn").forEach(b => {
+      b.addEventListener("click", () => {
+        if (S.view === b.dataset.view) return;
+        S.view = b.dataset.view;
+        renderEval();
+      });
+    });
+    if (S.view === "single") bindPanel(cur);
+    if (S.view === "album") {
+      const grid = document.getElementById("albumGrid");
+      if (grid) grid.addEventListener("click", e => {
+        const card = e.target.closest(".album-card");
+        if (!card) return;
+        S.currentIndex = +card.dataset.i;
+        S.view = "single";
+        renderEval();
+      });
+    }
+    if (S.view === "history") {
+      const hgrid = document.getElementById("histGrid");
+      if (hgrid) hgrid.addEventListener("click", e => {
+        if (e.target.closest(".hist-texts")) return; // 文本展开区不触发详情
+        const card = e.target.closest(".hist-card");
+        if (!card) return;
+        openHistModal(+card.dataset.i);
+      });
+    }
     ensureKbDrawer();
     document.getElementById("guideBtn").addEventListener("click", startTour);
     document.getElementById("exportBtn").addEventListener("click", openExport);
     document.getElementById("exitBtn").addEventListener("click", () => { if (confirm("退出将返回编号输入页(已评分已保存)。确定?")) { S.evaluatorId = null; S.mode = null; renderLanding(); } });
-    document.getElementById("prevBtn").addEventListener("click", () => nav(-1));
-    document.getElementById("nextBtn").addEventListener("click", () => { if (S.currentIndex === S.images.length - 1) openExport(); else nav(1); });
+    if (S.view === "single") {
+      document.getElementById("prevBtn").addEventListener("click", () => nav(-1));
+      document.getElementById("nextBtn").addEventListener("click", () => { if (S.currentIndex === S.images.length - 1) openExport(); else nav(1); });
+    }
 
     // 进度下拉菜单
     const progBtn = document.getElementById("progBtn");
@@ -270,6 +318,7 @@
       progPanel.querySelectorAll(".prog-item").forEach(it => {
         it.addEventListener("click", () => {
           S.currentIndex = +it.dataset.i;
+          S.view = "single";
           progPanel.style.display = "none";
           renderEval();
         });
@@ -281,19 +330,211 @@
       window._progOutsideBound = true;
     }
     // 同图交互保持面板滚动位置(避免点选项跳顶)
-    if (preserveScroll) { const p = document.getElementById("panelPane"); if (p) p.scrollTop = _ps; }
+    if (preserveScroll && S.view === "single") { const p = document.getElementById("panelPane"); if (p) p.scrollTop = _ps; }
   }
 
-  // ===== 评分面板(外部:定义+总体+归因;内部:知识库(单一来源)+要素识别+分维度仅评级+总体+归因) =====
+  // ===== 画册视图:总览本人全部图像已打的标签(完成后对照检查) =====
+  function rateChip(v, dimLabel) {
+    if (!v) return "";
+    const n = Number(v);
+    return `<span class="rate-chip rate-${n}">${dimLabel ? `<span class="rate-dim">${dimLabel}</span>` : ""}${SCALE[n] || v}<span class="v">${n}</span></span>`;
+  }
+  function rateChipText(txt, dimLabel) {
+    if (!txt) return "";
+    const n = RATE_CLS[txt];
+    return `<span class="rate-chip ${n ? "rate-" + n : ""}">${dimLabel ? `<span class="rate-dim">${dimLabel}</span>` : ""}${esc(txt)}</span>`;
+  }
+  function chipGroup(label, icon, inner) {
+    return `<div class="chip-group"><div class="chip-group-label"><i class="fas ${icon}"></i> ${label}</div><div class="tag-chips">${inner}</div></div>`;
+  }
+  const EMPTY_CHIP = t => `<span class="tag-chip empty">${t || "未填写"}</span>`;
+
+  function renderAlbum() {
+    const cards = S.images.map((im, i) => {
+      const r = S.ratings[im.name] || {};
+      const ok = isComplete(r);
+      let groups = "";
+      // 诊断评级
+      let rateHtml = rateChip(r.level_rating);
+      if (S.mode === "internal") rateHtml += rateChip(r.sr1_rating, "SR1") + rateChip(r.sr2_rating, "SR2");
+      groups += chipGroup("诊断评级", "fa-star-half-alt", rateHtml || EMPTY_CHIP("未评级"));
+      if (S.mode === "external") {
+        // 问题归因(对外=填写的归因名称)
+        let attrHtml;
+        if (r.no_issue) attrHtml = '<span class="tag-chip noissue"><i class="fas fa-check-circle"></i> 无明显问题</span>';
+        else {
+          const names = (r.attributions || []).map(a => (a.type || "").trim()).filter(Boolean);
+          attrHtml = names.length ? names.map(t => `<span class="tag-chip attr">${esc(t)}</span>`).join("") : EMPTY_CHIP();
+        }
+        groups += chipGroup("问题归因", "fa-tags", attrHtml);
+        // 优化策略(对外=填写的策略方向)
+        const dirs = (r.attributions || []).flatMap(a => (a.strategies || []).map(st => (st.direction || "").trim())).filter(Boolean);
+        groups += chipGroup("优化策略", "fa-compass", dirs.length ? dirs.map(t => `<span class="tag-chip strategy">${esc(t)}</span>`).join("") : EMPTY_CHIP());
+        // 实施举措(对外=填写的具体做法)
+        const acts = (r.attributions || []).flatMap(a => (a.strategies || []).flatMap(st => (st.measures || []).map(m => (m.action || "").trim()))).filter(Boolean);
+        groups += chipGroup("实施举措", "fa-tasks", acts.length ? acts.map(t => `<span class="tag-chip measure">${esc(t)}</span>`).join("") : EMPTY_CHIP());
+      } else {
+        // 问题归因(对内=勾选的归因项)
+        const iss = r.issue_selection || [];
+        let attrHtml;
+        if (iss.includes("no_issue")) attrHtml = '<span class="tag-chip noissue"><i class="fas fa-check-circle"></i> 无明显问题</span>';
+        else {
+          const names = iss.map(x => (DIMS.find(d => d.id === x) || {}).name).filter(Boolean);
+          attrHtml = names.length ? names.map(t => `<span class="tag-chip attr">${esc(t)}</span>`).join("") : EMPTY_CHIP("未勾选");
+        }
+        groups += chipGroup("问题归因", "fa-tags", attrHtml);
+        // 优化策略/实施举措(对内=勾选的标签)
+        const sis = (r.strategy_selection || []).map(id => STRATEGIES.find(st => st.id === id)).filter(Boolean);
+        groups += chipGroup("优化策略", "fa-compass", sis.length ? sis.map(st => `<span class="tag-chip strategy">${st.id} ${st.name}</span>`).join("") : EMPTY_CHIP("未勾选"));
+        const sms = (r.measure_selection || []).map(id => MEASURES.find(m => m.id === id)).filter(Boolean);
+        groups += chipGroup("实施举措", "fa-tasks", sms.length ? sms.map(m => `<span class="tag-chip measure">${m.id} ${m.name}</span>`).join("") : EMPTY_CHIP("未勾选"));
+      }
+      return `<div class="board-card album-card" data-i="${i}" style="animation-delay:${Math.min(i * 25, 300)}ms" title="点击跳转到该图">
+        <div class="board-thumb">
+          <img loading="lazy" src="${im.url}" alt="${im.name}" />
+          <span class="board-status ${ok ? "done" : "todo"}">${ok ? "已完成" : "未完成"}</span>
+        </div>
+        <div class="board-body">
+          <div class="board-pid"><span>pid ${pidOf(im.name)}</span><span class="idx">第${i + 1}张</span></div>
+          ${groups}
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="board-scroll view-fade"><div class="board-grid" id="albumGrid">${cards}</div></div>`;
+  }
+
+  // ===== 历史参照(仅对内):本人前两轮评价选择记录及现行口径映射 =====
+  function loadHistory() {
+    if (S._histLoading || S.historyData) return;
+    S._histLoading = true;
+    fetch("images/history-reference.json")
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(d => { S.historyData = d; })
+      .catch(e => { S.historyData = { evaluators: {} }; console.warn("历史参照加载失败", e); })
+      .finally(() => { S._histLoading = false; if (S.view === "history") renderEval(); });
+  }
+  function renderHistory() {
+    if (S.mode !== "internal") return "";
+    if (!S.historyData) {
+      loadHistory();
+      return `<div class="board-scroll view-fade"><div class="hist-loading"><i class="fas fa-spinner fa-spin"></i> 历史参照数据加载中…</div></div>`;
+    }
+    const rec = (S.historyData.evaluators || {})[String(S.evaluatorId)];
+    if (!rec || !(rec.images || []).length) {
+      return `<div class="board-scroll view-fade"><div class="hist-loading">未找到你的历史评价记录。</div></div>`;
+    }
+    const note = `<div class="hist-note"><b>历史参照说明：</b>以下为你在此前两轮评价中的选择记录，供本次评价对齐参考。<b>诊断评级</b>与<b>问题归因</b>来自 2025-12 轮（问题原因评价补充）；<b>优化策略</b>与<b>实施举措</b>由 2025-11 轮（模型与专家一致性）的选择按现行口径映射（当时的「问题影响判断」→ 现在的优化策略，当时的「优化方向」→ 现在的实施举措）。历史图像为当时评价的 52 张街景，与本次评价图像不同。</div>`;
+    const cards = rec.images.map((im, i) => historyCard(im, i)).join("");
+    return `<div class="board-scroll view-fade">${note}<div class="board-grid" id="histGrid">${cards}</div></div>`;
+  }
+  // 历史信息分组(卡片与详情弹窗共用;forModal=true 时长文本直接展开)
+  function histGroups(im, forModal) {
+    let body = "";
+    if (im.rating) {
+      body += chipGroup("诊断评级（当时选择）", "fa-star-half-alt",
+        rateChipText(im.rating.overall) + rateChipText(im.rating.sr1, "SR1") + rateChipText(im.rating.sr2, "SR2"));
+    }
+    if (im.attribution) {
+      const noIssue = im.attribution.some(a => (a || "").includes("无明显问题"));
+      const chips = noIssue
+        ? `<span class="tag-chip noissue"><i class="fas fa-check-circle"></i> ${esc(im.attribution.join("、"))}</span>`
+        : (im.attribution.length ? im.attribution.map(a => `<span class="tag-chip attr">${esc(a)}</span>`).join("") : EMPTY_CHIP("未选择"));
+      body += chipGroup("问题归因（当时选择）", "fa-tags", chips);
+    }
+    if (im.strategies) {
+      const inner = im.strategies.length
+        ? `<div class="map-list">${im.strategies.map(m => `<div class="map-row"><span class="map-old">${esc(m.old)}</span><span class="map-arrow"><i class="fas fa-arrow-right"></i></span><span class="map-new strategy">${esc(m.new)}</span></div>`).join("")}</div>`
+        : (im.no_issue_1110 ? '<span class="tag-chip noissue"><i class="fas fa-check-circle"></i> 无明显问题</span>' : EMPTY_CHIP("未选择"));
+      body += chipGroup("优化策略（当时选择 → 现行映射）", "fa-compass", inner);
+    }
+    if (im.measures) {
+      const inner = im.measures.length
+        ? `<div class="map-list">${im.measures.map(m => m.new
+            ? `<div class="map-row"><span class="map-old">${esc(m.old)}</span><span class="map-arrow"><i class="fas fa-arrow-right"></i></span><span class="map-new measure">${esc(m.new)}</span></div>`
+            : `<div class="map-row"><span class="map-old">其他（当时另填）</span></div>`).join("")}</div>`
+        : EMPTY_CHIP("未选择");
+      body += chipGroup("实施举措（当时选择 → 现行映射）", "fa-tasks", inner);
+    }
+    if ((im.rounds || []).length === 1) body += `<div class="hist-partial"><i class="fas fa-circle-info"></i> 该图仅有 ${im.rounds[0]} 轮记录</div>`;
+    const t = im.texts || {};
+    const blocks = [];
+    if (t.diagnosis) blocks.push(`<div class="hist-text-block"><span class="tb-label">问题诊断评价：</span>${esc(t.diagnosis)}</div>`);
+    if (t.strategy_fw && t.strategy_fw !== "无需进一步提升") blocks.push(`<div class="hist-text-block"><span class="tb-label">精细化优化策略（防卫空间特征）：</span>${esc(t.strategy_fw)}</div>`);
+    if (t.strategy_pb && t.strategy_pb !== "无需进一步提升") blocks.push(`<div class="hist-text-block"><span class="tb-label">精细化优化策略（空间破败程度）：</span>${esc(t.strategy_pb)}</div>`);
+    if (blocks.length) {
+      body += forModal
+        ? `<div class="chip-group"><div class="chip-group-label"><i class="fas fa-align-left"></i> 当时填写的文字</div>${blocks.join("")}</div>`
+        : `<details class="hist-texts"><summary><i class="fas fa-align-left"></i> 当时填写的文字</summary>${blocks.join("")}</details>`;
+    }
+    return body;
+  }
+  function historyCard(im, i) {
+    const rounds = (im.rounds || []).map(x => `<span class="round-badge">${x}</span>`).join("");
+    return `<div class="board-card hist-card" data-i="${i}" style="animation-delay:${Math.min(i * 30, 300)}ms" title="点击查看详情">
+      <div class="board-thumb"><img loading="lazy" src="${im.image}" alt="${im.pid}" /></div>
+      <div class="board-body">
+        <div class="board-pid"><span>pid ${im.pid}</span><span class="hist-rounds">${rounds}</span></div>
+        ${histGroups(im, false)}
+      </div>
+    </div>`;
+  }
+  // 历史详情弹窗(点击卡片进入,可前后翻页)
+  function openHistModal(idx) {
+    const rec = ((S.historyData || {}).evaluators || {})[String(S.evaluatorId)];
+    const imgs = (rec && rec.images) || [];
+    if (!imgs.length) return;
+    idx = ((idx % imgs.length) + imgs.length) % imgs.length;
+    const im = imgs[idx];
+    closeHistModal();
+    const rounds = (im.rounds || []).map(x => `<span class="round-badge">${x}</span>`).join("");
+    const ov = document.createElement("div");
+    ov.className = "hist-modal-overlay";
+    ov.id = "histModal";
+    ov.innerHTML = `<div class="hist-modal">
+      <button class="hist-modal-close" title="关闭 (Esc)"><i class="fas fa-times"></i></button>
+      <div class="hist-modal-left"><img src="${im.image}" alt="${im.pid}" /></div>
+      <div class="hist-modal-right">
+        <div class="hist-modal-head">
+          <span class="board-pid">pid ${im.pid}</span>
+          <span class="hist-rounds">${rounds}</span>
+        </div>
+        ${histGroups(im, true)}
+        <div class="hist-modal-nav">
+          <button class="btn btn-secondary" data-nav="-1"><i class="fas fa-chevron-left"></i> 上一张</button>
+          <span class="hist-modal-idx">${idx + 1} / ${imgs.length}</span>
+          <button class="btn btn-secondary" data-nav="1">下一张 <i class="fas fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener("click", e => { if (e.target === ov) closeHistModal(); });
+    ov.querySelector(".hist-modal-close").addEventListener("click", closeHistModal);
+    ov.querySelectorAll("[data-nav]").forEach(b => b.addEventListener("click", () => openHistModal(idx + (+b.dataset.nav))));
+    if (window._histKeyHandler) document.removeEventListener("keydown", window._histKeyHandler);
+    window._histKeyHandler = e => {
+      if (!document.getElementById("histModal")) { document.removeEventListener("keydown", window._histKeyHandler); window._histKeyHandler = null; return; }
+      if (e.key === "Escape") closeHistModal();
+      else if (e.key === "ArrowLeft") openHistModal(idx - 1);
+      else if (e.key === "ArrowRight") openHistModal(idx + 1);
+    };
+    document.addEventListener("keydown", window._histKeyHandler);
+  }
+  function closeHistModal() {
+    const m = document.getElementById("histModal");
+    if (m) m.remove();
+    if (window._histKeyHandler) { document.removeEventListener("keydown", window._histKeyHandler); window._histKeyHandler = null; }
+  }
+
+  // ===== 评分面板(外部:定义+诊断评级+归因填写;内部:知识库(单一来源)+要素识别+分项评级+总体+归因勾选+策略举措) =====
   function renderPanel(img) {
     const r = S.ratings[img.name] || {};
     let html = `<div class="rating-panel">`;
 
     if (S.mode === "external") {
-      // 外部:安全性定义 + 总体评级
+      // 外部:安全性定义 + 诊断评级
       html += `
         <div class="rating-section" id="sec-def">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-shield-alt"></i> 安全性</div></div>
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-shield-alt"></i> 安全性诊断评级</div></div>
           <div class="collapsible">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
               <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>查看安全性定义</span></div>
@@ -301,7 +542,7 @@
             </div>
             <div class="collapsible-content"><div class="collapsible-inner">${SAFETY_DEF}</div></div>
           </div>
-          <div class="rating-question">依据上述安全性定义,对该街道的步行感知安全性作出评价:</div>
+          <div class="rating-question">依据上述安全性定义，对该街道的步行感知安全性作出诊断评级（1 很差 ~ 5 很好）：</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
       // 外部:问题归因多填(无提示)
@@ -312,10 +553,10 @@
       html += `
         <div class="rating-section" id="sec-attr">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tag"></i> 问题归因</div></div>
-          <div class="rating-question">请列出对该街道步行感知安全性存在明确负面影响的问题。</div>
-          <div class="section-hint">概括影响步行感知安全性的问题,并填写相关解释说明(结合街景图像中的空间要素展开)。若明确存在多个影响安全性的问题,可逐个添加。若认为街道安全性较好或问题影响不明显,请勾选下方“无明显问题”。</div>
+          <div class="rating-question">请分析该街道步行感知安全性存在问题的原因：</div>
+          <div class="section-hint">逐条填写造成安全性问题的原因：先概括归因名称（≤10字），再结合街景图像中的空间要素说明该原因如何影响步行感知安全性。存在多个原因时可逐个添加；若认为街道安全性较好、无明显问题，请勾选下方“无明显问题”。</div>
           <div id="attrList" class="${disCls}">${attrs.map((a, i) => attrEntry(i, a, dis)).join("")}</div>
-          <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一个问题类型</button>
+          <button class="add-attr-btn" id="addAttrBtn" ${dis}><i class="fas fa-plus"></i> 添加一条问题归因</button>
           <div class="noissue-row">
             <div class="noissue-opt ${r.no_issue ? "on" : ""}" data-ni="1"><i class="fas fa-check-circle"></i> 无明显问题</div>
           </div>
@@ -326,10 +567,10 @@
     } else {
       // 内部:要素识别结果(模型)
       html += refSection(S.referenceData[img.name] || {});
-      // 内部:总体评价(在分维度之前)
+      // 内部:诊断评级(在分项之前)
       html += `
         <div class="rating-section" id="sec-overall">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 总体评价</div></div>
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-layer-group"></i> 安全性诊断评级</div></div>
           <div class="collapsible">
             <div class="collapsible-header" onclick="this.parentElement.classList.toggle('expanded')">
               <div class="collapsible-title"><i class="fas fa-info-circle"></i><span>安全性定义与评级标准（点此展开参考）</span></div>
@@ -337,17 +578,17 @@
             </div>
             <div class="collapsible-content"><div class="collapsible-inner" style="line-height:1.7">${KB_RATING_REF}</div></div>
           </div>
-          <div class="rating-question">依据上述安全性定义,对该街道的步行感知安全性作出评价:</div>
+          <div class="rating-question">依据上述安全性定义，对该街道的步行感知安全性作出诊断评级（1 很差 ~ 5 很好）：</div>
           <div class="scale-buttons">${scaleBtns(r.level_rating, "level")}</div>
         </div>`;
-      // 内部:分维度评价(SR1/SR2 仅评级,描述见知识库,不重复)
+      // 内部:分项诊断评级(SR1/SR2 仅评级,描述见知识库,不重复)
       html += `
         <div class="rating-section" id="sec-dims">
-          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-th-list"></i> 分维度评价</div></div>
+          <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-th-list"></i> 分项诊断评级</div></div>
           ${DIMS.map(d => {
             const f = "sr" + d.id.replace("SR", "");
             return `<div class="rating-card ${r[f + "_rating"] ? "completed" : ""}">
-              <div class="rating-question">针对「${d.name}」维度(依据其含义),评价该维度的表现:</div>
+              <div class="rating-question">针对「${d.name}」（依据其含义），作出诊断评级（1 很差 ~ 5 很好）：</div>
               <div class="scale-buttons">${scaleBtns(r[f + "_rating"], f)}</div>
             </div>`;
           }).join("")}
@@ -359,8 +600,8 @@
       html += `
         <div class="rating-section" id="sec-issues">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-tags"></i> 问题归因</div></div>
-          <div class="rating-question">请勾选该街道中明确影响步行安全性的问题维度:</div>
-          <div class="section-hint">可多选对应维度;若认为街道安全性较好或问题影响不明显,勾选“无明显问题”。</div>
+          <div class="rating-question">请判断该街道步行感知安全性存在问题的原因（可多选）：</div>
+          <div class="section-hint">问题归因强调“原因”：勾选造成安全性问题的原因；若认为街道安全性较好、无明显问题，请勾选“无明显问题”。</div>
           <div id="issueList" class="${noIssSel ? "disabled" : ""}">
             <div class="checkbox-tags sr-tags">
               ${DIMS.map(d => `<div class="chain-row"><label class="checkbox-tag ${iss.includes(d.id) ? "checked" : ""}" data-id="${d.id}"><i class="fas fa-check"></i> ${d.id} ${d.name}</label><span class="chain-info-btn" data-sr-info="${d.id}"><i class="fas fa-circle-info"></i> 内涵</span></div><div class="chain-info-box" id="sr-info-${d.id}" style="display:none">${d.desc}</div>`).join("")}
@@ -374,8 +615,8 @@
       html += `
         <div class="rating-section" id="sec-chain">
           <div class="rating-section-header"><div class="rating-section-title"><i class="fas fa-sitemap"></i> 优化策略与实施举措</div></div>
-          <div class="rating-question">按所选问题归因，依次选择对应的优化策略，再选择该策略对应的实施举措：</div>
-          <div class="section-hint">每个问题归因下仅列出其对应的优化策略；每个优化策略下仅列出其对应的实施举措，确保“问题→策略→举措”一一对应。</div>
+          <div class="rating-question">针对所选问题归因，依次选择对应的优化策略（策略方向），再选择该策略对应的实施举措（实施参考）：</div>
+          <div class="section-hint">优化策略强调策略方向，实施举措强调实施层面的参考做法。每个问题归因下仅列出其对应的优化策略；每个优化策略下仅列出其对应的实施举措，确保“归因→策略→举措”一一对应。</div>
           <div id="chainTree"></div>
         </div>`;
     }
@@ -393,14 +634,14 @@
   function attrEntry(i, a, dis) {
     if (!a.strategies) a.strategies = [];
     return `<div class="attr-entry" data-i="${i}">
-      <div class="attr-entry-head"><span class="lbl">问题 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除问题"><i class="fas fa-times"></i></button></div>
-      <div class="attr-label"><span>问题类型</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
-      <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="归纳安全性的问题" value="${esc(a.type || "")}" ${dis} />
-      <div class="attr-label">解释说明</div>
-      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街道中的空间要素进行相应的陈述和说明" ${dis}>${esc(a.analysis || "")}</textarea>
+      <div class="attr-entry-head"><span class="lbl">归因 ${i + 1}</span><button class="attr-del" data-del="${i}" ${dis} title="删除归因"><i class="fas fa-times"></i></button></div>
+      <div class="attr-label"><span>归因名称</span><span class="attr-cnt">${(a.type || "").length}/10</span></div>
+      <input class="text-input attr-type" data-i="${i}" maxlength="10" placeholder="概括造成安全性问题的原因" value="${esc(a.type || "")}" ${dis} />
+      <div class="attr-label">归因分析</div>
+      <textarea class="text-area attr-analysis" data-i="${i}" placeholder="结合街景中的空间要素，说明该原因如何影响步行感知安全性" ${dis}>${esc(a.analysis || "")}</textarea>
       <div class="nest-block">
-        <div class="nest-block-h"><i class="fas fa-compass"></i> 优化策略（针对该问题的优化方向，可填多个）</div>
-        <div class="nest-hint">侧重概括「优化方向」（方向层面）。</div>
+        <div class="nest-block-h"><i class="fas fa-compass"></i> 优化策略（针对该归因的策略方向，可填多个）</div>
+        <div class="nest-hint">侧重「策略方向」层面：概括往哪个方向优化，并说明理由。</div>
         <div class="strategy-list" data-ai="${i}">${a.strategies.map((st, si) => strategyEntry(i, si, st, dis)).join("")}</div>
         <button type="button" class="add-nest-btn add-strategy" data-ai="${i}" ${dis}><i class="fas fa-plus"></i> 添加优化策略</button>
       </div>
@@ -410,13 +651,13 @@
     if (!st.measures) st.measures = [];
     return `<div class="strategy-entry" data-ai="${ai}" data-si="${si}">
       <div class="nest-entry-head"><span class="lbl">优化策略 ${si + 1}</span><button type="button" class="nest-del strategy-del" data-ai="${ai}" data-si="${si}" ${dis} title="删除策略"><i class="fas fa-times"></i></button></div>
-      <div class="attr-label">优化方向（概括该策略的方向）</div>
-      <input class="text-input strat-direction" data-ai="${ai}" data-si="${si}" placeholder="概括优化方向" value="${esc(st.direction || "")}" ${dis} />
-      <div class="attr-label">说明理由（为何选择该优化方向）</div>
-      <textarea class="text-area strat-reason" data-ai="${ai}" data-si="${si}" placeholder="说明选择该优化方向的依据" ${dis}>${esc(st.reason || "")}</textarea>
+      <div class="attr-label">策略方向（概括该策略的优化方向）</div>
+      <input class="text-input strat-direction" data-ai="${ai}" data-si="${si}" placeholder="概括策略方向" value="${esc(st.direction || "")}" ${dis} />
+      <div class="attr-label">选择理由（为何采取该策略方向）</div>
+      <textarea class="text-area strat-reason" data-ai="${ai}" data-si="${si}" placeholder="说明采取该策略方向的依据" ${dis}>${esc(st.reason || "")}</textarea>
       <div class="nest-block nest-deeper">
-        <div class="nest-block-h"><i class="fas fa-tasks"></i> 实施举措（该方向下的具体落地做法，可填多个）</div>
-        <div class="nest-hint">侧重「具体怎么做、在哪做、针对什么」（落地层面）。</div>
+        <div class="nest-block-h"><i class="fas fa-tasks"></i> 实施举措（该策略下的具体做法，可填多个）</div>
+        <div class="nest-hint">侧重「实施层面」的参考：具体怎么做、在哪做、针对什么空间对象。</div>
         <div class="measure-list" data-ai="${ai}" data-si="${si}">${st.measures.map((m, mi) => measureEntry(ai, si, mi, m, dis)).join("")}</div>
         <button type="button" class="add-nest-btn add-measure" data-ai="${ai}" data-si="${si}" ${dis}><i class="fas fa-plus"></i> 添加实施举措</button>
       </div>
@@ -425,9 +666,9 @@
   function measureEntry(ai, si, mi, m, dis) {
     return `<div class="measure-entry" data-ai="${ai}" data-si="${si}" data-mi="${mi}">
       <div class="nest-entry-head"><span class="lbl">举措 ${mi + 1}</span><button type="button" class="nest-del measure-del" data-ai="${ai}" data-si="${si}" data-mi="${mi}" ${dis} title="删除举措"><i class="fas fa-times"></i></button></div>
-      <div class="attr-label">实施举措（概括具体做法）</div>
+      <div class="attr-label">具体做法（概括实施内容）</div>
       <input class="text-input meas-action" data-ai="${ai}" data-si="${si}" data-mi="${mi}" placeholder="概括具体实施做法" value="${esc(m.action || "")}" ${dis} />
-      <div class="attr-label">说明（结合街景说明可行性、实施位置与针对的空间对象）</div>
+      <div class="attr-label">实施说明（可行性、实施位置与针对的空间对象）</div>
       <textarea class="text-area meas-detail" data-ai="${ai}" data-si="${si}" data-mi="${mi}" placeholder="结合街景图像说明该实施举措的可行性、具体实施位置与针对的空间对象" ${dis}>${esc(m.detail || "")}</textarea>
     </div>`;
   }
@@ -697,30 +938,40 @@
     S.currentIndex = ni; renderEval();
   }
 
+  // 键盘 ←/→ 切换图像(仅逐张评价视图,输入框聚焦时不触发)
+  document.addEventListener("keydown", e => {
+    if (!S.evaluatorId || S.view !== "single") return;
+    const tag = ((e.target && e.target.tagName) || "").toLowerCase();
+    if (tag === "input" || tag === "textarea") return;
+    if (e.key === "ArrowLeft") nav(-1);
+    else if (e.key === "ArrowRight") { if (S.currentIndex === S.images.length - 1) openExport(); else nav(1); }
+  });
+
   // ===== 导出 =====
   // 使用指引:交互式分步导览(高亮框出各功能 + 编号标注)
   let _tour = null;
   function startTour() {
     const steps = (S.mode === "external" ? [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
-      { sel: "#sec-def", t: "安全性定义与总体评级", c: "展开“查看安全性定义”阅读定义;选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-attr", t: "问题归因与对策", c: "点“添加一个问题类型”填写影响安全性的问题类型(≤10字)与分析(结合街景空间要素)。在每个问题下,可进一步填写“优化策略”(概括优化方向+理由,可多个),并在每个策略下填写“实施举措”(具体做法+可行性+位置+针对的空间对象,可多个)。若安全性较好或问题不明显,勾选“无明显问题”。", p: "left" },
+      { sel: "#sec-def", t: "安全性定义与诊断评级", c: "展开“查看安全性定义”阅读定义;依据定义,对该街道的步行感知安全性作出诊断评级(1 很差 ~ 5 很好)。", p: "left" },
+      { sel: "#sec-attr", t: "问题归因、优化策略与实施举措", c: "问题归因关注“原因”:点“添加一条问题归因”,填写归因名称(≤10字)与归因分析(结合街景空间要素)。每条归因下可填写“优化策略”(策略方向+理由,可多个),每条策略下可填写“实施举措”(具体做法+实施说明,可多个)。若安全性较好、无明显问题,勾选“无明显问题”。", p: "left" },
+      { sel: "#viewSwitcher", t: "画册视图", c: "切到「画册视图」可总览全部 20 张图已填的诊断评级、问题归因、优化策略与实施举措标签,便于完成后对照检查;点击任意卡片可跳回该图继续修改。", p: "bottom" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ] : [
       { sel: ".image-viewer", t: "街景图像", c: "左侧显示待评价的街景图像,请仔细观察街道的安全性。", p: "right" },
       { sel: "#kbToggle", t: "知识库", c: "点击右下角「知识库」按钮，打开完整知识库侧栏：包含安全性定义、评级标准，以及问题归因→优化策略→实施举措的完整推理链路与每项内涵。侧栏可独立滚动浏览，评价过程中随时查阅、随时关闭。", p: "top" },
-      { sel: "#sec-overall", t: "安全性定义与评级", c: "展开「安全性定义与评级标准」可查看评价依据；依据定义，选择该街道安全性的总体评级（1 很差 ~ 5 很好）。", p: "left" },
+      { sel: "#sec-overall", t: "安全性诊断评级", c: "展开「安全性定义与评级标准」可查看评价依据；依据定义，对该街道的步行感知安全性作出诊断评级（1 很差 ~ 5 很好）。", p: "left" },
       { sel: "#sec-ref", t: "要素识别结果", c: "展开可查看模型识别的空间要素(仅供参考),辅助你的判断。", p: "left" },
-      { sel: "#sec-overall", t: "总体评价", c: "选择该街道安全性的总体评级(1 很差 ~ 5 很好)。", p: "left" },
-      { sel: "#sec-dims", t: "分维度评价", c: "为 SR1 自然监视不足、SR2 环境失序 各选一个 1-5 评级。", p: "left" },
-      { sel: "#sec-issues", t: "问题归因", c: "勾选存在的问题维度(可多选),或勾选“无明显问题”。每个维度旁可点“ⓘ 内涵”查看参考。", p: "left" },
-      { sel: "#sec-chain", t: "优化策略与实施举措", c: "按已选问题归因,依次选择对应的优化策略(每个可点“ⓘ 内涵”查看参考);选择策略后,其下展开对应的实施举措供选择。保证问题→策略→举措一一对应。", p: "left" },
+      { sel: "#sec-dims", t: "分项诊断评级", c: "依据各自含义,为 SR1 自然监视不足、SR2 环境失序 分别作出 1-5 诊断评级。", p: "left" },
+      { sel: "#sec-issues", t: "问题归因", c: "问题归因关注“原因”:勾选造成安全性问题的原因(可多选),或勾选“无明显问题”。每项旁可点“ⓘ 内涵”查看参考。", p: "left" },
+      { sel: "#sec-chain", t: "优化策略与实施举措", c: "优化策略关注“策略方向”,实施举措关注“实施参考”:按已选归因,依次选择对应的优化策略(每个可点“ⓘ 内涵”查看参考);选择策略后,其下展开对应的实施举措供选择。保证归因→策略→举措一一对应。", p: "left" },
+      { sel: "#viewSwitcher", t: "画册视图与历史参照", c: "「画册视图」总览全部图像已填的标签,便于完成后对照检查;「历史参照」展示你在此前两轮评价中的选择记录及现行口径映射,便于对齐本次评价。", p: "bottom" },
       { sel: ".eval-header-inner", t: "进度与导出", c: "顶部显示完成进度;“进度详情”查看/跳转;全部 20 张完成后点“导出”保存结果文件。", p: "bottom" },
       { sel: ".image-nav", t: "切换图像", c: "点“上一张/下一张”切换(或键盘 ←/->);完成全部后导出交回。", p: "top" },
     ]).filter(s => document.querySelector(s.sel));
     if (!steps.length) return;
-    const intro = { sel: null, t: "评价概览", c: "本次评价共 20 张街景图像。每张需完成:① 依据安全性定义进行安全性评级;② 诊断影响步行安全性的问题(或勾选“无明显问题”);③ 针对问题提出/选择优化策略与实施举措。下面逐一介绍各功能区域。", p: "center" };
+    const intro = { sel: null, t: "评价概览", c: "本次评价共 20 张街景图像。每张需完成:① 依据安全性定义作出诊断评级;② 分析安全性问题的原因(问题归因,或勾选“无明显问题”);③ 针对归因提出/选择优化策略(策略方向)与实施举措(实施参考)。下面逐一介绍各功能区域。", p: "center" };
     _tour = { steps: [intro, ...steps], i: 0 };
     showTourStep();
     window.addEventListener("resize", reposTour);
