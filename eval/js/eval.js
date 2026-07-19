@@ -452,7 +452,7 @@
       const chips = [];
       im.measures.forEach(m => {
         if (m.new) chips.push(`<span class="tag-chip measure">${esc(m.new)}</span>`);
-        else chips.push(`<span class="tag-chip">其他（当时另填）</span>`);
+        else chips.push(`<span class="tag-chip">其他</span>`);
       });
       const inner = chips.length ? chips.join("") : EMPTY_CHIP("未选择");
       body += chipGroup("实施举措（当时选择）", "fa-tasks", inner);
@@ -1056,13 +1056,16 @@
     const statusHtml = allDone
       ? `<div class="ex-status done"><i class="fas fa-check-circle"></i> 全部 ${total} 张已完成评价,可以导出。</div>`
       : `<div class="ex-status warn"><i class="fas fa-exclamation-triangle"></i> 还有 ${incomplete.length} 张未完成(第 ${incomplete.map(x => x.i + 1).join("、")} 张),建议完成后再导出。未完成项的字段将为空。</div>`;
+    const sheetHint = S.mode === "external"
+      ? "Excel 含三个工作表:① 评分总表(每图一行概览)② 问题明细(每条问题一行,便于后续提取)③ 策略举措明细(问题→优化策略→实施举措逐行展开)。"
+      : "Excel 含三个工作表:① 评分总表(每图一行概览)② 问题明细(每条问题一行,便于后续提取)③ 链路明细(问题归因→优化策略→实施举措逐行展开,未选项以“无明显问题/无需进一步提升”占位)。";
     const ov = document.createElement("div");
     ov.className = "export-modal-overlay";
     ov.innerHTML = `<div class="export-modal">
       <h3>导出评价结果</h3>
       <div class="sub">评价者 ${idStr} · 完成进度 ${done}/${total}</div>
       ${statusHtml}
-      <div class="ex-hint">确认导出?文件以你的编号命名(安全性评价_评价者${idStr})。Excel 含两个工作表:① 评分总表(每图一行概览)② 问题明细(每条问题一行,便于后续提取)。不同图像的问题数量不同时,也会逐条单独成行,准确适配。</div>
+      <div class="ex-hint">确认导出?文件以你的编号命名(安全性评价_评价者${idStr})。${sheetHint}</div>
       <div class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> 确认导出 Excel(.xlsx)</div>
       <div class="export-opt" data-f="json"><i class="fas fa-file-code"></i> 确认导出 JSON</div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:6px" data-f="cancel">取消</button>
@@ -1094,12 +1097,16 @@
         base["问题类型概览"] = r.no_issue ? "" : attrs.map(a => a.type).join("、");
       } else {
         const iss = r.issue_selection || [];
+        const srs = iss.filter(x => x !== "no_issue");
         base["SR1评级"] = r.sr1_rating ? SCALE[r.sr1_rating] : "";
         base["SR2评级"] = r.sr2_rating ? SCALE[r.sr2_rating] : "";
-        base["归因维度"] = iss.map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name).filter(Boolean).join("、");
+        // 未选任何归因(含"无明显问题"):归因=无明显问题,策略/举措=无需进一步提升,不留空
+        base["归因维度"] = srs.length ? srs.map(x => (DIMS.find(d => d.id === x) || {}).name).filter(Boolean).join("、") : "无明显问题";
         base["无明显问题"] = iss.includes("no_issue") ? "是" : "";
-        base["优化策略"] = (r.strategy_selection || []).map(id => (STRATEGIES.find(st => st.id === id) || {}).name).filter(Boolean).join("、");
-        base["实施举措"] = (r.measure_selection || []).map(id => (MEASURES.find(m => m.id === id) || {}).name).filter(Boolean).join("、");
+        const siNames = (r.strategy_selection || []).map(id => (STRATEGIES.find(st => st.id === id) || {}).name).filter(Boolean);
+        const smNames = (r.measure_selection || []).map(id => (MEASURES.find(m => m.id === id) || {}).name).filter(Boolean);
+        base["优化策略"] = srs.length ? siNames.join("、") : "无需进一步提升";
+        base["实施举措"] = srs.length ? smNames.join("、") : "无需进一步提升";
       }
       base["提交时间"] = r.timestamp || "";
       return base;
@@ -1130,6 +1137,40 @@
           out.push({ ...ctx, "问题序号": ++seq, "问题类型": (DIMS.find(d => d.id === id) || {}).name || id, "解释说明": "" });
         });
       }
+    });
+    return out;
+  }
+
+  // 对内链路明细:每张图按 SR1/SR2 两个归因位展开"问题归因→优化策略→实施举措";
+  // 未选的归因位占位为 问题归因=无明显问题、优化策略/实施举措=无需进一步提升(忠实呈现,不留空)
+  function internalChainRows(im, r) {
+    const rows = [];
+    const iss = r.issue_selection || [];
+    const sels = r.strategy_selection || [], msels = r.measure_selection || [];
+    DIMS.forEach(d => {
+      if (!iss.includes(d.id)) {
+        rows.push({ "归因编号": d.id, "问题归因": "无明显问题", "优化策略编号": "—", "优化策略": "无需进一步提升", "实施举措编号": "—", "实施举措": "无需进一步提升" });
+        return;
+      }
+      const sis = STRATEGIES.filter(st => st.parent === d.id && sels.includes(st.id));
+      if (!sis.length) {
+        rows.push({ "归因编号": d.id, "问题归因": d.name, "优化策略编号": "—", "优化策略": "无需进一步提升", "实施举措编号": "—", "实施举措": "无需进一步提升" });
+        return;
+      }
+      sis.forEach(st => {
+        const sms = MEASURES.filter(m => m.parent === st.id && msels.includes(m.id));
+        if (!sms.length) rows.push({ "归因编号": d.id, "问题归因": d.name, "优化策略编号": st.id, "优化策略": st.name, "实施举措编号": "", "实施举措": "" });
+        else sms.forEach(m => rows.push({ "归因编号": d.id, "问题归因": d.name, "优化策略编号": st.id, "优化策略": st.name, "实施举措编号": m.id, "实施举措": m.name }));
+      });
+    });
+    return rows;
+  }
+  function internalChainRecords() {
+    const out = [];
+    S.images.forEach((im, idx) => {
+      const r = S.ratings[im.name] || {};
+      const ctx = { "评价者编号": S.evaluatorId, "图像序号": idx + 1, "图像文件名": im.name, "街景点位pid": pidOf(im.name), "安全性评级": r.level_rating ? SCALE[r.level_rating] : "" };
+      internalChainRows(im, r).forEach(row => out.push({ ...ctx, ...row }));
     });
     return out;
   }
@@ -1177,9 +1218,15 @@
         ? XLSX.utils.json_to_sheet(chain)
         : XLSX.utils.aoa_to_sheet([["评价者编号","图像序号","图像文件名","街景点位pid","安全性评级","问题序号","问题类型","策略序号","优化方向","策略理由","举措序号","实施举措","实施说明"]]);
       XLSX.utils.book_append_sheet(wb, ws3, "策略举措明细");
+    } else {
+      const ichain = internalChainRecords();
+      const ws3i = ichain.length
+        ? XLSX.utils.json_to_sheet(ichain)
+        : XLSX.utils.aoa_to_sheet([["评价者编号","图像序号","图像文件名","街景点位pid","安全性评级","归因编号","问题归因","优化策略编号","优化策略","实施举措编号","实施举措"]]);
+      XLSX.utils.book_append_sheet(wb, ws3i, "链路明细");
     }
     XLSX.writeFile(wb, `安全性评价_评价者${String(S.evaluatorId).padStart(2, "0")}.xlsx`);
-    toast("Excel 已导出(评分总表 + 问题明细)");
+    toast("Excel 已导出(评分总表 + 问题明细 + 链路明细)");
   }
   function exportJSON() {
     const data = {
@@ -1209,6 +1256,12 @@
           img.sr2_rating = r.sr2_rating ? SCALE[r.sr2_rating] : null;
           img.issue_selection = (r.issue_selection || []).slice();
           img.issue_selection_names = (r.issue_selection || []).map(x => x === "no_issue" ? "无明显问题" : (DIMS.find(d => d.id === x) || {}).name);
+          img.strategy_selection = (r.strategy_selection || []).slice();
+          img.strategy_selection_names = (r.strategy_selection || []).map(id => (STRATEGIES.find(st => st.id === id) || {}).name).filter(Boolean);
+          img.measure_selection = (r.measure_selection || []).slice();
+          img.measure_selection_names = (r.measure_selection || []).map(id => (MEASURES.find(m => m.id === id) || {}).name).filter(Boolean);
+          // 链路明细(含占位): 未选归因位=无明显问题/无需进一步提升
+          img.chain = internalChainRows(im, r);
         }
         img.timestamp = r.timestamp || "";
         return img;
