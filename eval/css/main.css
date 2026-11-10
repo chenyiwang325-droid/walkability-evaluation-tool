@@ -3164,3 +3164,56 @@ td.element-desc-cell {
   margin-right: 6px;
   min-width: 24px;
 }
+
+/* The original expert form retains its fields, tabs and export actions at narrow widths. */
+body[data-level="safety"] :is(.eval-header, .rating-panel, .image-nav, .landing-card) :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--safety-dark, #982323);
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  body[data-level="safety"] .eval-header-inner {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px 9px;
+    padding: 10px 14px;
+  }
+  body[data-level="safety"] .eval-header-inner :is(.eval-header-title, .eval-id-chip, .eval-done-chip, .view-btn, .btn) {
+    white-space: nowrap;
+  }
+  body[data-level="safety"] .eval-header .eval-spacer { display: none; }
+  body[data-level="safety"] .eval-header .bar { width: clamp(36px, 8vw, 72px); }
+  body[data-level="safety"] .single-view.rate-mode {
+    height: auto !important;
+    min-height: 0;
+    overflow: visible;
+    gap: 12px;
+  }
+  body[data-level="safety"] .single-view.rate-mode :is(.single-view-left, .single-view-right) {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+  }
+}
+@media (max-width: 520px) {
+  body[data-level="safety"] .eval-header-inner { padding: 8px 10px; }
+  body[data-level="safety"] .eval-header-title h1 { font-size: 16px; }
+  body[data-level="safety"] .eval-header .eval-view-switcher {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  body[data-level="safety"] .eval-header .prog-panel {
+    position: fixed;
+    inset: auto 10px auto 10px;
+    width: auto;
+    max-height: 45dvh;
+  }
+  body[data-level="safety"] .eval-header .btn {
+    min-height: 36px;
+    padding: 6px 9px;
+  }
+}
