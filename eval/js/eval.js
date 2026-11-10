@@ -194,6 +194,30 @@
     }
     dr.querySelector(".kb-drawer-body").innerHTML = KB_FULL;
   }
+  let lastStreetAspect = '';
+  function watchStreetImage() {
+    const frame = app.querySelector('.image-container');
+    const image = frame && frame.querySelector('img');
+    if (!image) return;
+    if (lastStreetAspect) frame.style.setProperty('--street-photo-aspect', lastStreetAspect);
+    // The closure belongs to this picture. A late response cannot clear the next picture's feedback.
+    const timer = setTimeout(() => {
+      if (frame.isConnected && !image.complete) frame.dataset.imagePending = 'true';
+    }, 180);
+    function settled() {
+      clearTimeout(timer);
+      image.removeEventListener('load', settled);
+      image.removeEventListener('error', settled);
+      if (!frame.isConnected) return;
+      frame.removeAttribute('data-image-pending');
+      frame.setAttribute('aria-busy', 'false');
+      if (image.naturalWidth && image.naturalHeight)
+        lastStreetAspect = image.naturalWidth + ' / ' + image.naturalHeight;
+    }
+    image.addEventListener('load', settled);
+    image.addEventListener('error', settled);
+    if (image.complete) settled();
+  }
   function renderEval(preserveScroll) {
     closeHistModal();
     const _ps = preserveScroll ? ((document.getElementById("panelPane") || {}).scrollTop || 0) : 0;
@@ -220,7 +244,7 @@
                 <div class="image-viewer-header">
                   <div class="image-viewer-title"><i class="fas fa-image"></i> 街景图像 · pid ${pidOf(cur.name)}</div>
                 </div>
-                <div class="image-container"><img src="${cur.url}" alt="${cur.name}" /></div>
+                <div class="image-container" role="group" aria-label="街景图像" aria-busy="true"><img src="${cur.url}" alt="${cur.name}" /></div>
                 <div class="image-nav">
                   <div class="image-nav-info"><i class="fas fa-map-marker-alt"></i> ${S.currentIndex + 1} / ${S.images.length}</div>
                   <div class="image-nav-controls">
@@ -280,7 +304,7 @@
         renderEval();
       });
     });
-    if (S.view === "single") bindPanel(cur);
+    if (S.view === "single") { watchStreetImage(); bindPanel(cur); }
     if (S.view === "album") {
       const grid = document.getElementById("albumGrid");
       if (grid) grid.addEventListener("click", e => {
@@ -629,7 +653,7 @@
   function scaleBtns(sel, field) {
     sel = sel ? String(sel) : null;
     let h = "";
-    for (let i = 1; i <= 5; i++) h += `<button class="scale-btn ${String(i) === sel ? "selected" : ""}" data-value="${i}" data-field="${field}">${SCALE[i]}</button>`;
+    for (let i = 1; i <= 5; i++) h += `<button class="scale-btn ${String(i) === sel ? "selected" : ""}" data-value="${i}" data-field="${field}" aria-pressed="${String(i) === sel}">${SCALE[i]}</button>`;
     return h;
   }
 
@@ -727,7 +751,11 @@
         if (f === "level") r.level_rating = v; else r[f + "_rating"] = v;
         r.timestamp = new Date().toISOString();
         saveStore();
-        document.querySelectorAll(`.scale-btn[data-field="${f}"]`).forEach(x => x.classList.toggle("selected", x.dataset.value === String(v)));
+        document.querySelectorAll(`.scale-btn[data-field="${f}"]`).forEach(x => {
+          const selected = x.dataset.value === String(v);
+          x.classList.toggle("selected", selected);
+          x.setAttribute("aria-pressed", String(selected));
+        });
         if (f !== "level") { const card = b.closest(".rating-card"); if (card) card.classList.add("completed"); }
         updateProgressUI();
       });
@@ -934,19 +962,36 @@
     }
   }
 
-  function nav(dir) {
+  function nav(dir, keyboard = false) {
     const ni = S.currentIndex + dir;
     if (ni < 0 || ni >= S.images.length) return;
+    const source = document.activeElement;
+    const wasNav = source && (source.id === 'prevBtn' || source.id === 'nextBtn');
     S.currentIndex = ni; renderEval();
+    if (wasNav || keyboard) {
+      const desired = document.getElementById(wasNav ? source.id : dir < 0 ? 'prevBtn' : 'nextBtn');
+      const target = desired && !desired.disabled ? desired : document.getElementById('nextBtn');
+      target?.focus({preventScroll: true});
+    }
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      const image = app.querySelector('.image-viewer');
+      const header = app.querySelector('.eval-header');
+      if (image && header) {
+        const delta = image.getBoundingClientRect().top - header.getBoundingClientRect().bottom - 6;
+        if (delta < -12) window.scrollBy({top: delta, behavior: 'instant'});
+      }
+    }
   }
 
-  // 键盘 ←/→ 切换图像(仅逐张评价视图,输入框聚焦时不触发)
   document.addEventListener("keydown", e => {
-    if (!S.evaluatorId || S.view !== "single") return;
-    const tag = ((e.target && e.target.tagName) || "").toLowerCase();
-    if (tag === "input" || tag === "textarea") return;
-    if (e.key === "ArrowLeft") nav(-1);
-    else if (e.key === "ArrowRight") { if (S.currentIndex === S.images.length - 1) openExport(); else nav(1); }
+    if (!S.evaluatorId || S.view !== "single" || e.defaultPrevented || e.isComposing ||
+        e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || !["ArrowRight", "ArrowLeft"].includes(e.key)) return;
+    if (document.querySelector('.export-modal-overlay,.hist-modal-overlay,#tourMask') ||
+        e.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
+    e.preventDefault();
+    if (e.key === "ArrowLeft") nav(-1, true);
+    else if (S.currentIndex === S.images.length - 1) openExport();
+    else nav(1, true);
   });
 
   // ===== 导出 =====
@@ -1048,6 +1093,8 @@
   }
 
   function openExport() {
+    if (app.querySelector(".export-modal-overlay")) return;
+    const opener = document.activeElement;
     const total = S.images.length;
     const incomplete = S.images.map((im, i) => ({ i, ok: isComplete(S.ratings[im.name]) })).filter(x => !x.ok);
     const done = total - incomplete.length;
@@ -1061,18 +1108,31 @@
       : "Excel 含三个工作表:① 评分总表(每图一行概览)② 问题明细(每条问题一行,便于后续提取)③ 链路明细(问题归因→优化策略→实施举措逐行展开,未选项以“无明显问题/无需进一步提升”占位)。";
     const ov = document.createElement("div");
     ov.className = "export-modal-overlay";
-    ov.innerHTML = `<div class="export-modal">
-      <h3>导出评价结果</h3>
+    ov.innerHTML = `<div class="export-modal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <h3 id="exportTitle" tabindex="-1">导出评价结果</h3>
       <div class="sub">评价者 ${idStr} · 完成进度 ${done}/${total}</div>
       ${statusHtml}
       <div class="ex-hint">确认导出?文件以你的编号命名(安全性评价_评价者${idStr})。${sheetHint}</div>
-      <div class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> 确认导出 Excel(.xlsx)</div>
-      <div class="export-opt" data-f="json"><i class="fas fa-file-code"></i> 确认导出 JSON</div>
+      <button type="button" class="export-opt" data-f="excel"><i class="fas fa-file-excel"></i> 确认导出 Excel(.xlsx)</button>
+      <button type="button" class="export-opt" data-f="json"><i class="fas fa-file-code"></i> 确认导出 JSON</button>
       <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:6px" data-f="cancel">取消</button>
     </div>`;
     app.appendChild(ov);
-    ov.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", () => {
-      const f = b.dataset.f; ov.remove();
+    const options = Array.from(ov.querySelectorAll("[data-f]"));
+    const close = () => {
+      ov.remove();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({preventScroll:true});
+    };
+    const heading = ov.querySelector("#exportTitle");
+    heading.focus({preventScroll:true});
+    ov.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey && (document.activeElement === options[0] || document.activeElement === heading)) {e.preventDefault(); options[options.length - 1].focus();}
+      else if (!e.shiftKey && document.activeElement === options[options.length - 1]) {e.preventDefault(); options[0].focus();}
+    });
+    options.forEach(b => b.addEventListener("click", () => {
+      const f = b.dataset.f; close();
       if (f === "excel") exportExcel(); else if (f === "json") exportJSON();
     }));
   }

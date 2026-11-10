@@ -3253,3 +3253,24 @@ body[data-level="safety"] .rating-panel .scale-btn:focus-visible {
   body[data-level="safety"] .rating-panel .scale-btn,
   body[data-level="safety"] .single-view .image-nav-info {animation:none!important;transition:none!important}
 }
+
+/* Reserve the previous photograph's footprint while a slow next image arrives. */
+@media (max-width: 900px) {
+  body[data-level="safety"] .single-view .image-container[aria-busy="true"] {
+    aspect-ratio:var(--street-photo-aspect,16 / 9);
+  }
+}
+body[data-level="safety"] .image-container[data-image-pending]::after {
+  content:"";position:absolute;inset:0;margin:auto;width:23px;height:23px;
+  border:2px solid #ffffff62;border-top-color:#fff;border-radius:50%;
+  pointer-events:none;
+}
+@media (prefers-reduced-motion:no-preference) {
+  body[data-level="safety"] .image-container[data-image-pending]::after {
+    animation:street-loading .9s linear infinite;
+  }
+  @keyframes street-loading {to{transform:rotate(1turn)}}
+}
+body[data-level="safety"] .export-modal .export-opt {width:100%;text-align:left;background-color:var(--white);font-family:inherit}
+body[data-level="safety"] .export-modal #exportTitle:focus {outline:none}
+body[data-level="safety"] .export-modal button:focus-visible {outline:2px solid #536f80;outline-offset:2px}
